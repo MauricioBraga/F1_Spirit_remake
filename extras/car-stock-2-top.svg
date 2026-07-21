@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://web.resource.org/cc/"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="144"
+   height="80"
+   id="svg2"
+   sodipodi:version="0.32"
+   inkscape:version="0.45.1"
+   version="1.0"
+   sodipodi:docbase="/home/dfcastelao/moviditas/graficos/f1_spirit"
+   sodipodi:docname="car-stock-2-top.svg"
+   inkscape:output_extension="org.inkscape.output.svg.inkscape"
+   inkscape:export-filename="/home/dfcastelao/moviditas/remakes/f1_spirit/juego/graphics/car-stock-2-top.png"
+   inkscape:export-xdpi="90"
+   inkscape:export-ydpi="90">
+  <defs
+     id="defs4" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     gridtolerance="10000"
+     guidetolerance="10"
+     objecttolerance="10"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="4.1319445"
+     inkscape:cx="130.5598"
+     inkscape:cy="60.772063"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer2"
+     width="144px"
+     height="80px"
+     showgrid="true"
+     inkscape:grid-points="true"
+     showguides="true"
+     inkscape:guide-bbox="true"
+     inkscape:window-width="1280"
+     inkscape:window-height="975"
+     inkscape:window-x="0"
+     inkscape:window-y="0" />
+  <metadata
+     id="metadata7">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Lamborghini"
+     inkscape:groupmode="layer"
+     id="layer1"
+     style="display:none"
+     sodipodi:insensitive="true">
+    <image
+       y="56.714287"
+       x="0"
+       id="image2576"
+       height="68"
+       width="144"
+       sodipodi:absref="/home/dfcastelao/moviditas/remakes/f1_spirit/svn/trunk/graphics/car-stock-3-side.png"
+       xlink:href="/home/dfcastelao/moviditas/remakes/f1_spirit/svn/trunk/graphics/car-stock-3-side.png" />
+    <image
+       y="0"
+       x="0"
+       id="image2619"
+       height="80"
+       width="144"
+       sodipodi:absref="/home/dfcastelao/moviditas/remakes/f1_spirit/svn/trunk/graphics/car-stock-3-top.png"
+       xlink:href="/home/dfcastelao/moviditas/remakes/f1_spirit/svn/trunk/graphics/car-stock-3-top.png" />
+  </g>
+  <g
+     inkscape:groupmode="layer"
+     id="layer3"
+     inkscape:label="Stock 1"
+     style="display:none"
+     sodipodi:insensitive="true">
+    <image
+       style="display:inline"
+       y="8"
+       x="0"
+       id="image2428"
+       height="64"
+       width="144"
+       sodipodi:absref="/home/dfcastelao/moviditas/remakes/f1_spirit/svn/trunk/graphics/car-stock-1-side.png"
+       xlink:href="/home/dfcastelao/moviditas/remakes/f1_spirit/svn/trunk/graphics/car-stock-1-side.png" />
+  </g>
+  <g
+     inkscape:groupmode="layer"
+     id="layer2"
+     inkscape:label="cochecito leré">
+    <path
+       style="fill:none;fill-opacity:1;stroke:#2020e0;stroke-width:1;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="M 30,68 C 20.298575,65.574644 12,60 12,55 C 12,45.668806 12,28.035714 12,25 C 12,20 20.513167,15.162278 30,12 C 37.5,9.5 55,10 75,10 C 85,10 105,8 115,8 C 120,8 125,13 125,13 L 118,13 L 118,67 L 125,67 C 125,67 120,72 115,72 C 105,72 85,70 75,70 C 55,70 40,70.5 30,68 z "
+       id="path2623"
+       sodipodi:nodetypes="cssssssccccss" />
+    <path
+       style="fill:none;fill-opacity:1;stroke:#2020e0;stroke-width:1;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="M 55,15 L 68,25 C 65,35 65,45 68,55 L 55,65 C 53,65 49,52.5 49,40 C 49,27.5 53,15 55,15 z "
+       id="path3594"
+       sodipodi:nodetypes="ccccsc" />
+    <path
+       style="fill:none;fill-opacity:1;stroke:#2020e0;stroke-width:1;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="M 58,15 L 70,24 L 91,26 L 87,15 L 58,15 z "
+       id="path3596"
+       sodipodi:nodetypes="ccccc" />
+    <path
+       style="fill:none;fill-opacity:1;stroke:#2020e0;stroke-width:1;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="M 70,56 L 58,65 L 87,65 L 91,54 L 70,56 z "
+       id="path3598"
+       sodipodi:nodetypes="ccccc" />
+    <path
+       style="fill:none;fill-opacity:1;stroke:#2020e0;stroke-width:0.5;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="M 12,28 C 12,28 14.097097,23.980581 19,23 C 24,22 50,20 50,20"
+       id="path3612"
+       sodipodi:nodetypes="csc" />
+    <path
+       sodipodi:nodetypes="csc"
+       id="path3614"
+       d="M 12,52 C 12,52 15.097097,56.019419 20,57 C 25,58 50,60 50,60"
+       style="fill:none;fill-opacity:1;stroke:#2020e0;stroke-width:0.5;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+    <path
+       style="fill:none;fill-opacity:1;stroke:#2020e0;stroke-width:0.5;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="M 20,16 C 19.821429,19.517857 20,23 20,23"
+       id="path3618"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="fill:none;fill-opacity:1;stroke:#2020e0;stroke-width:0.5;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="M 20,64 C 20,62 20,57 20,57"
+       id="path3620"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="fill:none;fill-opacity:1;stroke:#2020e0;stroke-width:1;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="M 106,26 L 110,27 C 110,27 113,31 113,40 C 113,49 110,53 110,53 L 106,54 L 96,52 C 96,52 100,50 100,40 C 100,30 96,28 96,28 L 106,26 z "
+       id="path3624"
+       sodipodi:nodetypes="cczccczcc" />
+    <path
+       style="fill:none;fill-opacity:1;stroke:#2020e0;stroke-width:1;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="M 118,13 L 134,13 L 134,67 L 118,67 L 118,13 z "
+       id="path3626"
+       sodipodi:nodetypes="ccccc" />
+    <path
+       style="fill:none;fill-opacity:1;stroke:#2020e0;stroke-width:0.5;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="M 121,13 L 121,67"
+       id="path3628" />
+    <path
+       style="fill:none;fill-opacity:1;stroke:#2020e0;stroke-width:0.5;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="M 15,40 C 15,39 20,37 21,37 C 22,37 20,39 20,40 C 20,41 22,43 21,43 C 20,43 15,41 15,40 z "
+       id="path3657"
+       sodipodi:nodetypes="czzzz" />
+    <path
+       style="fill:none;fill-opacity:1;stroke:#2020e0;stroke-width:0.5;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="M 49,61 L 53,65 L 50,64 L 49,61 z "
+       id="path3223"
+       sodipodi:nodetypes="cccc" />
+    <path
+       style="fill:none;fill-opacity:1;stroke:#2020e0;stroke-width:0.5;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="M 49,19 L 53,15 L 50,16 L 49,19 z "
+       id="path3225"
+       sodipodi:nodetypes="cccc" />
+    <path
+       style="fill:none;fill-opacity:1;stroke:#2020e0;stroke-width:0.5;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="M 105,23 L 118,20"
+       id="path3233"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="fill:none;fill-opacity:1;stroke:#2020e0;stroke-width:0.5;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="M 105,57 L 118,60"
+       id="path3235"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="fill:none;fill-opacity:1;stroke:#2020e0;stroke-width:0.5;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="M 93,15 L 103,21 L 106,21 L 93,15 z "
+       id="path3237"
+       sodipodi:nodetypes="cccc" />
+    <path
+       style="fill:none;fill-opacity:1;stroke:#2020e0;stroke-width:0.5;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="M 98,16 L 106,20 L 109,20 L 98,16 z "
+       id="path3239"
+       sodipodi:nodetypes="cccc" />
+    <path
+       style="fill:none;fill-opacity:1;stroke:#2020e0;stroke-width:0.5;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="M 104,17 L 109,19 L 112,19 L 104,17 z "
+       id="path3241"
+       sodipodi:nodetypes="cccc" />
+    <path
+       style="fill:none;fill-opacity:1;stroke:#2020e0;stroke-width:0.5;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="M 103,59 L 106,59 L 93,65 L 103,59 z "
+       id="path3246"
+       sodipodi:nodetypes="cccc" />
+    <path
+       style="fill:none;fill-opacity:1;stroke:#2020e0;stroke-width:0.5;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="M 98,64 L 106,60 L 109,60 L 98,64 z "
+       id="path3248" />
+    <path
+       style="fill:none;fill-opacity:1;stroke:#2020e0;stroke-width:0.5;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="M 104,63 L 109,61 L 112,61 L 104,63 z "
+       id="path3250" />
+    <path
+       style="fill:none;fill-opacity:1;stroke:#2020e0;stroke-width:1;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="M 94,54 L 91,64 L 104,56 L 94,54 z "
+       id="path3254"
+       sodipodi:nodetypes="cccc" />
+    <path
+       style="fill:none;fill-opacity:1;stroke:#2020e0;stroke-width:1;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="M 94,26 L 90,16 L 104,24 L 94,26 z "
+       id="path4225"
+       sodipodi:nodetypes="cccc" />
+  </g>
+</svg>

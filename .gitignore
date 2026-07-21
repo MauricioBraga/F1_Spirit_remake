@@ -44,6 +44,9 @@ build/
 Build/
 build-*/
 
+# old svn files
+.svn/
+
 # CMake generated files
 CMakeFiles/
 CMakeCache.txt
@@ -77,3 +80,5 @@ Testing/
 *.svn-base
 *.dbg
 *.dat
+# filter thumbs.db files.
+*.db
