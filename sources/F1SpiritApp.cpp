@@ -4,7 +4,7 @@
 
 #ifdef _WIN32
 #include "windows.h"
-#include "glut.h"
+// #include "glut.h"
 #endif
 
 #include <stdio.h>
