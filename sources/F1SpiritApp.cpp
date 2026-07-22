@@ -80,8 +80,8 @@ F1SpiritApp::F1SpiritApp()
 	output_debug_message("Initializing F1-Spirit\n");
 #endif
 
-	// state = APP_STATE_DISCLAIMER;
-	state = APP_STATE_ENDSEQUENCE;
+	state = APP_STATE_DISCLAIMER;
+	// state = APP_STATE_ENDSEQUENCE;
 
 	state_cycle = 0;
 	font = load_bmp_font("graphics/font-unicode-alpha.png", 0, 256);
