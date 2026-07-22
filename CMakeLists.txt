@@ -42,6 +42,7 @@ target_include_directories(f1spirit PRIVATE
 )
 
 target_compile_options(f1spirit PRIVATE -Wno-write-strings)
+target_compile_definitions(f1spirit PRIVATE WIN32_LEAN_AND_MEAN)
 
 
 target_link_libraries(f1spirit PRIVATE
