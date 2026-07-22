@@ -11,10 +11,10 @@
 
 #include "GL/gl.h"
 #include "GL/glu.h"
-#include "SDL.h"
-#include "SDL_mixer.h"
-#include "SDL_image.h"
-#include "SDL_net.h"
+#include "compat/sdl3_compat.h"
+#include <SDL3_mixer/SDL_mixer.h>
+#include <SDL3_image/SDL_image.h>
+#include "compat/SDL_net.h"
 
 #include <curl/curl.h>
 
@@ -311,7 +311,7 @@ void F1SpiritApp::menu_draw(void)
 
 			print_left_bmp((unsigned char *)"TRACK INFO:", font, sfc, 32, 32, 0);
 
-			/* puntuación, mejor tiempo total, mejor tiempo del jugador actual */
+			/* puntuaciï¿½n, mejor tiempo total, mejor tiempo del jugador actual */
 			sprintf((char *)tmp, "SCORE:");
 			print_left_bmp(tmp, font, sfc, 32, 64, 0);
 			sprintf((char *)tmp, "  %i", current_player->get_points(menu_showing_track));

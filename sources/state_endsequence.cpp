@@ -9,9 +9,9 @@
 
 #include "GL/gl.h"
 #include "GL/glu.h"
-#include "SDL.h"
-#include "SDL_mixer.h"
-#include "SDL_net.h"
+#include "compat/sdl3_compat.h"
+#include <SDL3_mixer/SDL_mixer.h>
+#include "compat/SDL_net.h"
 
 #include "F1Spirit.h"
 #include "Vector.h"
@@ -378,7 +378,7 @@ void F1SpiritApp::endsequence_draw(void)
 
                 /*
                 teste: fazer as estrelas brilharem apenas em vez de se mexer.
-                nota: nao está funcionando ainda
+                nota: nao estï¿½ funcionando ainda
                 float f2 = 1.0F;
    
    				if (endsequence_timmer % 7*ENDSEQUENCE_CTNT < 500)
@@ -794,9 +794,9 @@ void F1SpiritApp::endsequence_draw(void)
 
 				delete t;
 
-				sfc = SDL_CreateRGBSurface(SDL_SWSURFACE, get_text_width_bmp((unsigned char *)"Santi Ontañón", font, 0), font->h, 32, RMASK, GMASK, BMASK, AMASK);
+				sfc = SDL_CreateRGBSurface(SDL_SWSURFACE, get_text_width_bmp((unsigned char *)"Santi Ontaï¿½ï¿½n", font, 0), font->h, 32, RMASK, GMASK, BMASK, AMASK);
 
-				print_left_bmp((unsigned char *)"Santi Ontañón", font, sfc, 0, 0, 0);
+				print_left_bmp((unsigned char *)"Santi Ontaï¿½ï¿½n", font, sfc, 0, 0, 0);
 
 				t = new GLTile(sfc);
 
@@ -851,9 +851,9 @@ void F1SpiritApp::endsequence_draw(void)
 
 				delete t;
 
-				sfc = SDL_CreateRGBSurface(SDL_SWSURFACE, get_text_width_bmp((unsigned char *)"Maurício Braga", font, 0), font->h, 32, RMASK, GMASK, BMASK, AMASK);
+				sfc = SDL_CreateRGBSurface(SDL_SWSURFACE, get_text_width_bmp((unsigned char *)"Maurï¿½cio Braga", font, 0), font->h, 32, RMASK, GMASK, BMASK, AMASK);
 
-				print_left_bmp((unsigned char *)"Maurício Braga", font, sfc, 0, 0, 0);
+				print_left_bmp((unsigned char *)"Maurï¿½cio Braga", font, sfc, 0, 0, 0);
 
 				t = new GLTile(sfc);
 
@@ -898,9 +898,9 @@ void F1SpiritApp::endsequence_draw(void)
 
 
 
-				sfc = SDL_CreateRGBSurface(SDL_SWSURFACE, get_text_width_bmp((unsigned char *)"Santi Ontañón", font, 0), font->h, 32, RMASK, GMASK, BMASK, AMASK);
+				sfc = SDL_CreateRGBSurface(SDL_SWSURFACE, get_text_width_bmp((unsigned char *)"Santi Ontaï¿½ï¿½n", font, 0), font->h, 32, RMASK, GMASK, BMASK, AMASK);
 
-				print_left_bmp((unsigned char *)"Santi Ontañón", font, sfc, 0, 0, 0);
+				print_left_bmp((unsigned char *)"Santi Ontaï¿½ï¿½n", font, sfc, 0, 0, 0);
 
 				t = new GLTile(sfc);
 

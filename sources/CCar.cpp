@@ -8,10 +8,10 @@
 
 #include "GL/gl.h"
 #include "GL/glu.h"
-#include "SDL.h"
-#include "SDL_image.h"
-#include "SDL_mixer.h"
-#include "SDL_net.h"
+#include "compat/sdl3_compat.h"
+#include <SDL3_image/SDL_image.h>
+#include <SDL3_mixer/SDL_mixer.h>
+#include "compat/SDL_net.h"
 
 #include "F1Spirit.h"
 #include "sound.h"
@@ -47,7 +47,6 @@
 extern bool sound;
 extern TRanrotBGenerator *rg;
 
-void carEngineSoundEffect(int chan, void *stream, int len, void *udata);
 
 
 CEngine::CEngine(float p, float c, float e, int m)
@@ -331,7 +330,6 @@ CCar::~CCar()
 
 	if (carengine_channel >= 0 && sound) {
 		Mix_HaltChannel(carengine_channel);
-		Mix_UnregisterAllEffects(carengine_channel);
 	}
 
 	S_carengine = 0;
@@ -828,7 +826,7 @@ void CCar::draw_mini(float a, float x, float y, float z, float angle, float zoom
 
 bool CCar::cycle(bool kaccelerate, bool kbrake, int kgear, int kturn, CRoadPiece *current_piece, CTrack *track, List<RacingCCar> *cars, List<F1S_SFX> *sfx, int sfx_volume, bool check_trackcollision, int terrain, float position, List<RacingCCar> **car_grid, int car_grid_sx, int car_grid_sy)
 {
-	/* Modelo físico: */
+	/* Modelo fï¿½sico: */
 	float old_x = tcar->x;
 	float old_y = tcar->y;
 	float old_z = tcar->z;
@@ -843,16 +841,29 @@ bool CCar::cycle(bool kaccelerate, bool kbrake, int kgear, int kturn, CRoadPiece
 #ifdef F1SPIRIT_DEBUG_MESSAGES
 		output_debug_message("Starting the engine sound in channel: %i\n", carengine_channel);
 #endif
+		/* SDL3_mixer has no per-sample mix callback for a channel, so the
+		   old approach here (manually resampling S_carengine's raw PCM
+		   buffer every audio callback via Mix_RegisterEffect, see the old
+		   CarEngineSound.cpp) is gone. MIX_SetTrackFrequencyRatio() now
+		   does the same pitch-shifting job natively; it's driven once per
+		   game frame below instead of once per audio buffer. */
 		Mix_HaltChannel(0);
-//		Mix_UnregisterAllEffects(carengine_channel);
-		if(!Mix_RegisterEffect(carengine_channel, carEngineSoundEffect, NULL, this)) {
-#ifdef F1SPIRIT_DEBUG_MESSAGES
-		    output_debug_message("Mix_RegisterEffect: %s\n", Mix_GetError());
-#endif
-		}
 		Mix_PlayChannel(carengine_channel, S_carengine, -1);
 		carengine_sounding = true;
 	} // if
+
+	if (carengine_channel >= 0 && carengine_sounding) {
+		/* f = ((rpm-2000)/2000)+0.5 : same formula the old per-sample
+		   resampler used, now applied as a track-wide playback speed. */
+		float f = (get_rpm() - 2000.0F) / 2000.0F;
+
+		if (f < 0)
+			f = 0;
+
+		f = 0.5F + f;
+
+		Sound_set_channel_pitch(carengine_channel, f);
+	}
 
 
 	switch (get_state()) {

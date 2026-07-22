@@ -6,7 +6,7 @@
 
 #include "GL/gl.h"
 #include "GL/glu.h"
-#include "SDL.h"
+#include "compat/sdl3_compat.h"
 
 #include "stdlib.h"
 #include "auxiliar.h"

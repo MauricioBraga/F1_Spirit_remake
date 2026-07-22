@@ -14,10 +14,10 @@
 
 #include <GL/gl.h>
 #include <GL/glu.h>
-#include <SDL.h>
-#include <SDL_image.h>
-#include <SDL_mixer.h>
-#include <SDL_net.h>
+#include "compat/sdl3_compat.h"
+#include <SDL3_image/SDL_image.h>
+#include <SDL3_mixer/SDL_mixer.h>
+#include "compat/SDL_net.h"
 
 #include <curl/curl.h>
 
@@ -61,6 +61,7 @@ extern bool fullscreen;
 extern bool network;
 extern int network_tcp_port;
 extern int network_udp_port;
+extern SDL_Window *g_window;
 
 extern bool show_console_msg;
 extern char console_msg[80];
@@ -763,7 +764,7 @@ void F1SpiritApp::draw()
 	
 	glDisable(GL_BLEND);
 
-	SDL_GL_SwapBuffers();
+	SDL_GL_SwapWindow(g_window);
 }
 
 void F1SpiritApp::blank_hiscores(void)

@@ -4,8 +4,8 @@
 
 #include <GL/gl.h>
 
-#include "SDL.h"
-#include "SDL_image.h"
+#include "compat/sdl3_compat.h"
+#include <SDL3_image/SDL_image.h>
 
 #include "stdio.h"
 #include "math.h"

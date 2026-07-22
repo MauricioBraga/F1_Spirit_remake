@@ -11,9 +11,9 @@
 #include "string.h"
 #include "math.h"
 
-#include "SDL.h"
-#include "SDL_image.h"
-#include "SDL_mixer.h"
+#include "compat/sdl3_compat.h"
+#include <SDL3_image/SDL_image.h>
+#include <SDL3_mixer/SDL_mixer.h>
 
 #include "auxiliar.h"
 #include "List.h"

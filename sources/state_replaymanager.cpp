@@ -11,9 +11,9 @@
 
 #include "GL/gl.h"
 #include "GL/glu.h"
-#include "SDL.h"
-#include "SDL_mixer.h"
-#include "SDL_net.h"
+#include "compat/sdl3_compat.h"
+#include <SDL3_mixer/SDL_mixer.h>
+#include "compat/SDL_net.h"
 
 #include "F1Spirit.h"
 #include "sound.h"
@@ -647,7 +647,7 @@ void F1SpiritApp::replaymanager_draw(void)
 
 			y += 12;
 
-			/* nº of players: */
+			/* nï¿½ of players: */
 			sprintf(tmp, "Number of Players: %i", ri->n_player_cars);
 
 			sfc = SDL_CreateRGBSurface(SDL_SWSURFACE, get_text_width_bmp((unsigned char *)tmp, small_font, 0), small_font->h, 32, RMASK, GMASK, BMASK, AMASK);

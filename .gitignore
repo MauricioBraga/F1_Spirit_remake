@@ -76,7 +76,10 @@ Testing/
 *.rar
 
 # 
-*.txt
+creditos.txt
+explicacao*.txt
+to-do.txt
+output.txt
 *.svn-base
 *.dbg
 *.dat

@@ -9,7 +9,7 @@
 
 #include "GL/gl.h"
 #include "GL/glu.h"
-#include "SDL.h"
+#include "compat/sdl3_compat.h"
 
 #include "F1Spirit.h"
 #include "stdlib.h"

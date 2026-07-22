@@ -3,13 +3,11 @@
 #include "string.h"
 
 #include <curl/curl.h>
-#include <curl/types.h>
 #include <curl/easy.h>
 
 #include "F1Shttp.h"
 
-#include "SDL.h"
-#include "SDL_thread.h"
+#include "compat/sdl3_compat.h"
 
 
 int n_servers = 2;
@@ -47,7 +45,7 @@ size_t F1Shttp_WriteMemoryCB(void *ptr, size_t size, size_t nmemb, void *data)
 
 
 
-int F1Shttp_thread(void *me)
+int SDLCALL F1Shttp_thread(void *me)
 {
 	char final_url[2048];
 	F1Shttp *p = (F1Shttp *)me;
@@ -82,7 +80,7 @@ F1Shttp::F1Shttp(char *p_url)
 	url = new char[strlen(p_url) + 1];
 	strcpy(url, p_url);
 
-	thread = SDL_CreateThread(F1Shttp_thread, (void *)this);
+	thread = SDL_CreateThread(F1Shttp_thread, "F1Shttp", (void *)this);
 
 } 
 
@@ -90,7 +88,16 @@ F1Shttp::F1Shttp(char *p_url)
 
 F1Shttp::~F1Shttp()
 {
-	SDL_KillThread(thread);
+	/* SDL3 removed SDL_KillThread(): threads can no longer be forcefully
+	   terminated (this was never really safe in SDL 1.2 either - it could
+	   leave curl's internal state half-updated). We detach instead, so the
+	   fetch finishes in the background and SDL cleans the thread handle up
+	   on its own once it's done. If "this" is destroyed before the fetch
+	   completes, the F1Shttp_thread callback may end up touching freed
+	   memory, exactly the same latent bug the original SDL_KillThread
+	   version already had. */
+	if (thread != NULL)
+		SDL_DetachThread(thread);
 
 	curl_easy_cleanup(curl_handle);
 

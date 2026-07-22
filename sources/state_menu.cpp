@@ -11,10 +11,10 @@
 
 #include "GL/gl.h"
 #include "GL/glu.h"
-#include "SDL.h"
-#include "SDL_mixer.h"
-#include "SDL_image.h"
-#include "SDL_net.h"
+#include "compat/sdl3_compat.h"
+#include <SDL3_mixer/SDL_mixer.h>
+#include <SDL3_image/SDL_image.h>
+#include "compat/SDL_net.h"
 
 #include <curl/curl.h>
 
@@ -191,11 +191,11 @@ int F1SpiritApp::menu_cycle(KEYBOARDSTATE *k)
 		} 
 	} 
 
-	if (k->keyboard[SDLK_m] && k->keyboard[SDLK_a] && k->keyboard[SDLK_x]) {
+	if (k->keyboard[SDLK_M] && k->keyboard[SDLK_A] && k->keyboard[SDLK_X]) {
 		cheat_max_point = true;
 	} 
 
-	if (k->keyboard[SDLK_e] && k->keyboard[SDLK_n] && k->keyboard[SDLK_d]) {
+	if (k->keyboard[SDLK_E] && k->keyboard[SDLK_N] && k->keyboard[SDLK_D]) {
 		endsequence_state = 0;
 		endsequence_timmer = 0;
 		endsequence_returnstate = APP_STATE_MENU;
@@ -999,7 +999,7 @@ int F1SpiritApp::menu_cycle(KEYBOARDSTATE *k)
 
 					break;
 
-				case 38: { /* CHANGE Nº of ENEMY CARS: */
+				case 38: { /* CHANGE Nï¿½ of ENEMY CARS: */
 					}
 
 					break;

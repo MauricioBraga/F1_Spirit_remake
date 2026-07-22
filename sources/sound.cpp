@@ -1,6 +1,5 @@
-#include "SDL.h"
-#include "SDL_mixer.h"
-//#include "SDL_sound.h"
+#include "compat/sdl3_compat.h"
+#include <SDL3_mixer/SDL_mixer.h>
 #include "sound.h"
 #include "stdio.h"
 #include "string.h"
@@ -12,17 +11,93 @@
 #include "debug_memorymanager.h"
 #endif
 
-#define AUDIO_BUFFER 1024;
+/*
+ * SDL3_mixer 3.x replaced the whole classic Mix_OpenAudio/Mix_PlayChannel/
+ * Mix_Chunk/Mix_Music API with a new object model:
+ *
+ *   MIX_Mixer  - one real audio device
+ *   MIX_Audio  - a loaded sound (what SOUNDT now is, see sound.h)
+ *   MIX_Track  - a mixing slot that plays a MIX_Audio (the old "channel")
+ *
+ * The rest of the game (CCar.cpp, F1SpiritGame.cpp, state_race.cpp,
+ * state_gameoptions.cpp, ...) still calls Sound_play()/Sound_play_ch()
+ * plus a handful of *direct* Mix_HaltChannel()/Mix_FadeInChannel()/
+ * Mix_FadeOutChannel()/Mix_Pause()/Mix_Resume() calls addressed by a plain
+ * integer channel number (e.g. a fixed SFX_RAIN channel). To avoid
+ * touching every one of those call sites, this file keeps a fixed pool of
+ * MIX_Track objects indexed exactly like the old channels used to be, and
+ * re-implements those few Mix_* names as small wrappers around the new
+ * per-track API.
+ */
 
+static MIX_Mixer *mixer = 0;
+static MIX_Track **channel_tracks = 0;
+static int n_channels = 0;
+static MIX_Track *music_track = 0;
+static MIX_Audio *music_audio = 0;
 
 bool sound_enabled = false;
-Mix_Music *music_sound = 0;
-int n_channels = -1;
+int music_loops_pending = 0;
 
+static MIX_Track *get_track(int channel)
+{
+	if (channel < 0 || channel >= n_channels)
+		return 0;
+
+	return channel_tracks[channel];
+}
+
+static void alloc_channels(int nc)
+{
+	int i;
+
+	if (channel_tracks) {
+		for (i = 0; i < n_channels; i++)
+			MIX_DestroyTrack(channel_tracks[i]);
+
+		delete[] channel_tracks;
+	}
+
+	n_channels = (nc > 0) ? nc : 16;
+	channel_tracks = new MIX_Track * [n_channels];
+
+	for (i = 0; i < n_channels; i++)
+		channel_tracks[i] = MIX_CreateTrack(mixer);
+}
+
+/* find a track that isn't currently playing anything, for Sound_play()
+   which (like the old Mix_PlayChannel(-1, ...)) doesn't care which
+   channel it lands on. */
+static int find_free_channel(void)
+{
+	static int rr = 0;
+	int i;
+
+	for (i = 0; i < n_channels; i++) {
+		int c = (rr + i) % n_channels;
+		if (!MIX_TrackPlaying(channel_tracks[c])) {
+			rr = (c + 1) % n_channels;
+			return c;
+		}
+	}
+
+	rr = (rr + 1) % n_channels;
+	return rr;
+}
+
+static void play_on_track(MIX_Track *track, MIX_Audio *audio, int loops)
+{
+	if (!track || !audio)
+		return;
+
+	MIX_SetTrackAudio(track, audio);
+	MIX_SetTrackLoops(track, loops);
+	MIX_PlayTrack(track, 0);
+}
 
 bool Sound_initialization(void)
 {
-	if ( -1 == Sound_initialization(0, 0))
+	if (-1 == Sound_initialization(0, 0))
 		return false;
 
 	return true;
@@ -31,64 +106,37 @@ bool Sound_initialization(void)
 
 int Sound_initialization(int nc, int nrc)
 {
-	char SoundcardName[256];
-	int audio_rate = 44100;
-	int audio_channels = 2;
-	int audio_bufsize = AUDIO_BUFFER;
-	Uint16 audio_format = AUDIO_S16;
-	SDL_version compile_version;
-	n_channels = 8;
-
 	sound_enabled = true;
-#ifdef F1SPIRIT_DEBUG_MESSAGES
 
-	output_debug_message("Initializing SDL_mixer.\n");
+#ifdef F1SPIRIT_DEBUG_MESSAGES
+	output_debug_message("Initializing SDL3_mixer.\n");
 #endif
 
-	if (Mix_OpenAudio(audio_rate, audio_format, audio_channels, audio_bufsize)) {
+	if (!MIX_Init()) {
 		sound_enabled = false;
 #ifdef F1SPIRIT_DEBUG_MESSAGES
-
-		output_debug_message("Unable to open audio: %s\n", Mix_GetError());
+		output_debug_message("Unable to init SDL3_mixer: %s\n", SDL_GetError());
 		output_debug_message("Running the game without audio.\n");
 #endif
-
 		return -1;
-	} 
+	}
 
-	SDL_AudioDriverName (SoundcardName, sizeof (SoundcardName));
+	mixer = MIX_CreateMixerDevice(0, NULL);
 
-	Mix_QuerySpec (&audio_rate, &audio_format, &audio_channels);
-
+	if (!mixer) {
+		sound_enabled = false;
 #ifdef F1SPIRIT_DEBUG_MESSAGES
-
-	output_debug_message("    opened %s at %d Hz %d bit %s, %d bytes audio buffer\n",
-	                     SoundcardName, audio_rate, audio_format & 0xFF,
-	                     audio_channels > 1 ? "stereo" : "mono", audio_bufsize);
-
+		output_debug_message("Unable to open audio device: %s\n", SDL_GetError());
+		output_debug_message("Running the game without audio.\n");
 #endif
+		return -1;
+	}
 
-	MIX_VERSION (&compile_version);
+	alloc_channels(nc > 0 ? nc : 16);
+	(void)nrc; /* reserved channels have no equivalent concept any more: every
+	              track in the pool is available to Sound_play()'s round robin. */
 
-#ifdef F1SPIRIT_DEBUG_MESSAGES
-
-	output_debug_message("    compiled with SDL_mixer version: %d.%d.%d\n",
-	                     compile_version.major,
-	                     compile_version.minor,
-	                     compile_version.patch);
-
-	output_debug_message("    running with SDL_mixer version: %d.%d.%d\n",
-	                     Mix_Linked_Version()->major,
-	                     Mix_Linked_Version()->minor,
-	                     Mix_Linked_Version()->patch);
-
-#endif
-
-	if (nc > 0)
-		n_channels = Mix_AllocateChannels(nc);
-
-	if (nrc > 0)
-		Mix_ReserveChannels(nrc);
+	music_track = MIX_CreateTrack(mixer);
 
 	return n_channels;
 } /* Sound_init */
@@ -98,9 +146,24 @@ void Sound_release(void)
 	Sound_release_music();
 
 	if (sound_enabled) {
-		//  Sound_Quit();
-		Mix_CloseAudio();
-	} 
+		int i;
+
+		if (music_track)
+			MIX_DestroyTrack(music_track);
+		music_track = 0;
+
+		for (i = 0; i < n_channels; i++)
+			MIX_DestroyTrack(channel_tracks[i]);
+
+		delete[] channel_tracks;
+		channel_tracks = 0;
+		n_channels = 0;
+
+		MIX_DestroyMixer(mixer);
+		mixer = 0;
+
+		MIX_Quit();
+	}
 
 	sound_enabled = false;
 } /* Sound_release */
@@ -110,10 +173,8 @@ void Stop_playback(void)
 {
 	if (sound_enabled) {
 		Sound_pause_music();
-		//  Mix_HookMusic(0, 0);
-		Mix_CloseAudio();
-		sound_enabled = false;
-	} 
+		Sound_release();
+	}
 } /* Stop_playback */
 
 void Resume_playback(void)
@@ -124,68 +185,14 @@ void Resume_playback(void)
 
 int Resume_playback(int nc, int nrc)
 {
-	char SoundcardName[256];
-	int audio_rate = 44100;
-	int audio_channels = 2;
-	int audio_bufsize = AUDIO_BUFFER;
-	Uint16 audio_format = AUDIO_S16;
-	SDL_version compile_version;
-	n_channels = 8;
+	int n = Sound_initialization(nc, nrc);
 
-	sound_enabled = true;
-#ifdef F1SPIRIT_DEBUG_MESSAGES
+	if (n != -1 && music_audio) {
+		music_track = MIX_CreateTrack(mixer);
+		play_on_track(music_track, music_audio, music_loops_pending);
+	}
 
-	output_debug_message("Initializing SDL_mixer.\n");
-#endif
-
-	if (Mix_OpenAudio(audio_rate, audio_format, audio_channels, audio_bufsize)) {
-		sound_enabled = false;
-#ifdef F1SPIRIT_DEBUG_MESSAGES
-
-		output_debug_message("Unable to open audio: %s\n", Mix_GetError());
-		output_debug_message("Running the game without audio.\n");
-#endif
-
-		return -1;
-	} 
-
-	SDL_AudioDriverName (SoundcardName, sizeof (SoundcardName));
-
-	Mix_QuerySpec (&audio_rate, &audio_format, &audio_channels);
-
-#ifdef F1SPIRIT_DEBUG_MESSAGES
-
-	output_debug_message("    opened %s at %d Hz %d bit %s, %d bytes audio buffer\n",
-	                     SoundcardName, audio_rate, audio_format & 0xFF,
-	                     audio_channels > 1 ? "stereo" : "mono", audio_bufsize);
-
-#endif
-
-	MIX_VERSION (&compile_version);
-
-#ifdef F1SPIRIT_DEBUG_MESSAGES
-
-	output_debug_message("    compiled with SDL_mixer version: %d.%d.%d\n",
-	                     compile_version.major,
-	                     compile_version.minor,
-	                     compile_version.patch);
-
-	output_debug_message("    running with SDL_mixer version: %d.%d.%d\n",
-	                     Mix_Linked_Version()->major,
-	                     Mix_Linked_Version()->minor,
-	                     Mix_Linked_Version()->patch);
-
-#endif
-
-	if (nc > 0)
-		n_channels = Mix_AllocateChannels(nc);
-
-	if (nrc > 0)
-		Mix_ReserveChannels(nrc);
-
-	Sound_unpause_music();
-
-	return n_channels;
+	return n;
 } /* Resume_playback */
 
 
@@ -198,180 +205,172 @@ int file_check(char *fname)
 		if (fseek(fp, 0L, SEEK_END) == 0 && ftell(fp) > 0) {
 			fclose(fp);
 			return true;
-		} 
+		}
 
-		/* either the file could not be read (==-1) or size was zero (==0) */
 #ifdef F1SPIRIT_DEBUG_MESSAGES
 		output_debug_message("ERROR in file_check(): the file %s is corrupted.\n", fname);
-
 #endif
 
 		fclose(fp);
 
 		exit(1);
-	} 
+	}
 
 	return false;
 } /* file_check */
 
 
+static char *find_sound_file(char *file, const char *const *ext, int n_ext, char *name)
+{
+	int i;
+
+	for (i = 0; i < n_ext; i++) {
+		strcpy(name, file);
+		strcat(name, ext[i]);
+
+		if (file_check(name))
+			return name;
+	}
+
+	return 0;
+} /* find_sound_file */
+
 
 SOUNDT Sound_create_sound(char *file)
 {
-	int n_ext = 6;
-	char *ext[6] = {".ogg", ".wav", ".mp3", ".OGG", ".WAV", ".MP3"};
+	static const char *const ext[6] = {".ogg", ".wav", ".mp3", ".OGG", ".WAV", ".MP3"};
 	char name[256];
-	int i;
 
 	if (sound_enabled) {
-		for (i = 0;i < n_ext;i++) {
-			strcpy(name, file);
-			strcat(name, ext[i]);
-
-			if (file_check(name)) {
-				return Mix_LoadWAV(name);
-			}
-		} 
+		if (find_sound_file(file, ext, 6, name))
+			return MIX_LoadAudio(mixer, name, true);
 
 #ifdef F1SPIRIT_DEBUG_MESSAGES
 		output_debug_message("ERROR in Sound_create_sound(): Could not load sound file: %s.(wav|ogg|mp3)\n", file);
-
 #endif
 
 		exit(1);
-	} else {
-		return 0;
-	} 
+	}
+
+	return 0;
 } /* Sound_create_sound */
 
 
 void Sound_delete_sound(SOUNDT s)
 {
-	if (sound_enabled)
-		Mix_FreeChunk(s);
+	if (sound_enabled && s)
+		MIX_DestroyAudio(s);
 } /* Sound_delete_sound */
 
 
 void Sound_play(SOUNDT s)
 {
 	if (sound_enabled)
-		Mix_PlayChannel( -1, s, 0);
+		play_on_track(channel_tracks[find_free_channel()], s, 0);
 } /* Sound_play */
 
 
 void Sound_play(SOUNDT s, int volume)
 {
 	if (sound_enabled) {
-		int channel = Mix_PlayChannel( -1, s, 0);
-		Mix_Volume(channel, volume);
-	} 
+		MIX_Track *t = channel_tracks[find_free_channel()];
+		play_on_track(t, s, 0);
+		MIX_SetTrackGain(t, volume / 128.0f);
+	}
 } /* Sound_play */
 
 void Sound_play_ch(SOUNDT s, int ch)
 {
-	if (sound_enabled && ch < n_channels)
-		Mix_PlayChannel(ch, s, 0);
+	if (sound_enabled && ch >= 0 && ch < n_channels)
+		play_on_track(channel_tracks[ch], s, 0);
 } /* Sound_play_ch */
 
 
 void Sound_play_ch(SOUNDT s, int ch, int volume)
 {
-	if (sound_enabled && ch < n_channels) {
-		int channel = Mix_PlayChannel(ch, s, 0);
-		Mix_Volume(channel, volume);
-	} 
+	if (sound_enabled && ch >= 0 && ch < n_channels) {
+		MIX_Track *t = channel_tracks[ch];
+		play_on_track(t, s, 0);
+		MIX_SetTrackGain(t, volume / 128.0f);
+	}
 } /* Sound_play_ch */
 
-Mix_Music *Sound_create_stream(char *file)
+MIX_Audio *Sound_create_stream(char *file)
 {
-	int n_ext = 6;
-	char *ext[6] = {".ogg", ".wav", ".mp3", ".OGG", ".WAV", ".MP3"};
+	static const char *const ext[6] = {".ogg", ".wav", ".mp3", ".OGG", ".WAV", ".MP3"};
 	char name[256];
-	int i;
 
 	if (sound_enabled) {
-		for (i = 0;i < n_ext;i++) {
-			strcpy(name, file);
-			strcat(name, ext[i]);
-
-			if (file_check(name))
-				return Mix_LoadMUS(name);
-		} 
+		if (find_sound_file(file, ext, 6, name))
+			return MIX_LoadAudio(mixer, name, false);
 
 #ifdef F1SPIRIT_DEBUG_MESSAGES
 		output_debug_message("ERROR in Sound_create_stream(): Could not load sound file: %s.(wav|ogg|mp3)\n", file);
-
 #endif
 
 		exit(1);
-	} else {
-		return 0;
-	} 
+	}
+
+	return 0;
 } /* Sound_create_stream */
 
 
 void Sound_create_music(char *f1, int loops)
 {
 	if (sound_enabled) {
-		if (f1 != 0) {
-			music_sound = Sound_create_stream(f1);
-			Mix_PlayMusic(music_sound, loops);
-		} else {
-			music_sound = 0;
-		} 
+		if (music_audio) {
+			MIX_DestroyAudio(music_audio);
+			music_audio = 0;
+		}
 
-		//  playing_music=true;
-	} 
+		if (f1 != 0) {
+			music_audio = Sound_create_stream(f1);
+			music_loops_pending = loops;
+			play_on_track(music_track, music_audio, loops);
+		} else {
+			music_audio = 0;
+		}
+	}
 } /* Sound_create_music */
 
 
 bool Sound_file_test(char *f1)
 {
-	int n_ext = 6;
-	char *ext[6] = {".WAV", ".OGG", ".MP3", ".wav", ".ogg", ".mp3"};
+	static const char *const ext[6] = {".WAV", ".OGG", ".MP3", ".wav", ".ogg", ".mp3"};
 	char name[256];
-	int i;
 
-	if (sound_enabled) {
-		for (i = 0;i < n_ext;i++) {
-			strcpy(name, f1);
-			strcat(name, ext[i]);
+	if (sound_enabled)
+		return find_sound_file(f1, ext, 6, name) != 0;
 
-			if (file_check(name))
-				return true;
-		} 
-
-		return false;
-	} else {
-		return false;
-	} 
+	return false;
 } /* Sound_file_test */
 
 
 void Sound_release_music(void)
 {
 	if (sound_enabled) {
-		//  playing_music=false;
-		Mix_HaltMusic();
+		if (music_track)
+			MIX_StopTrack(music_track, 0);
 
-		if (music_sound != 0)
-			Mix_FreeMusic(music_sound);
+		if (music_audio != 0)
+			MIX_DestroyAudio(music_audio);
 
-		music_sound = 0;
-	} 
+		music_audio = 0;
+	}
 } /* Sound_release_music */
-
 
 
 void Sound_pause_music(void)
 {
-	Mix_PauseMusic();
+	if (sound_enabled && music_track)
+		MIX_PauseTrack(music_track);
 } /* Sound_pause_music */
 
 
 void Sound_unpause_music(void)
 {
-	Mix_ResumeMusic();
+	if (sound_enabled && music_track)
+		MIX_ResumeTrack(music_track);
 } /* Sound_unpause_music */
 
 
@@ -383,5 +382,86 @@ void Sound_music_volume(int volume)
 	if (volume > 127)
 		volume = 127;
 
-	Mix_VolumeMusic(volume);
+	if (sound_enabled && music_track)
+		MIX_SetTrackGain(music_track, volume / 127.0f);
 } /* Sound_music_volume */
+
+
+/* ------------------------------------------------------------------ *
+ * Small "channel index" compatibility wrappers.
+ *
+ * A few files (CCar.cpp, F1SpiritGame.cpp, state_gameoptions.cpp,
+ * state_race.cpp) call the classic Mix_HaltChannel()/Mix_FadeInChannel()/
+ * Mix_FadeOutChannel()/Mix_Pause()/Mix_Resume()/Mix_GetError() directly
+ * with a plain channel number (e.g. a fixed SFX_RAIN channel), rather
+ * than going through Sound_play_ch(). These give those call sites the
+ * same names/signatures, backed by the same track pool used above.
+ * (Declared in sound.h.)
+ * ------------------------------------------------------------------ */
+
+const char *Mix_GetError(void)
+{
+	return SDL_GetError();
+}
+
+void Mix_HaltChannel(int channel)
+{
+	MIX_Track *t = get_track(channel);
+	if (t)
+		MIX_StopTrack(t, 0);
+}
+
+int Mix_PlayChannel(int channel, SOUNDT sound, int loops)
+{
+	MIX_Track *t = get_track(channel);
+	play_on_track(t, sound, loops);
+	return channel;
+}
+
+int Mix_FadeInChannel(int channel, SOUNDT sound, int loops, int ms)
+{
+	MIX_Track *t = get_track(channel);
+
+	if (t && sound) {
+		MIX_SetTrackAudio(t, sound);
+		MIX_SetTrackLoops(t, loops);
+
+		SDL_PropertiesID props = SDL_CreateProperties();
+		SDL_SetNumberProperty(props, MIX_PROP_PLAY_FADE_IN_FRAMES_NUMBER, MIX_TrackMSToFrames(t, ms));
+		MIX_PlayTrack(t, props);
+		SDL_DestroyProperties(props);
+	}
+
+	return channel;
+}
+
+void Mix_FadeOutChannel(int channel, int ms)
+{
+	MIX_Track *t = get_track(channel);
+	if (t)
+		MIX_StopTrack(t, MIX_TrackMSToFrames(t, ms));
+}
+
+void Mix_Pause(int channel)
+{
+	MIX_Track *t = get_track(channel);
+	if (t)
+		MIX_PauseTrack(t);
+}
+
+void Mix_Resume(int channel)
+{
+	MIX_Track *t = get_track(channel);
+	if (t)
+		MIX_ResumeTrack(t);
+}
+
+/* used only by the car engine sound; the manual PCM pitch-shifting effect
+   that used to live in CarEngineSound.cpp is gone (see the comment there
+   and in CCar.cpp) - MIX_SetTrackFrequencyRatio() now does that natively. */
+void Sound_set_channel_pitch(int channel, float ratio)
+{
+	MIX_Track *t = get_track(channel);
+	if (t)
+		MIX_SetTrackFrequencyRatio(t, ratio);
+}

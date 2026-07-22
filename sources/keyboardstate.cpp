@@ -1,10 +1,11 @@
 #include "assert.h"
 
+#include "stdio.h"
 #include "string.h"
 #include "math.h"
 #include "stdlib.h"
 
-#include "SDL.h"
+#include "compat/sdl3_compat.h"
 
 #include "List.h"
 
@@ -73,13 +74,13 @@ KEYBOARDSTATE::~KEYBOARDSTATE(void)
 void KEYBOARDSTATE::cycle(void)
 {
 	int i, j, v;
-	unsigned char *k = (unsigned char *)SDL_GetKeyState(NULL);
+	const bool *k = SDL_GetKeyboardState(NULL);
 
 	/* Update keyboard: */
 
 	for (i = 0;i < SDLK_LAST;i++) {
 		old_keyboard[i] = keyboard[i];
-		keyboard[i] = k[i];
+		keyboard[i] = k[i] ? 1 : 0;
 	} 
 
 	if (n_joysticks > 0) {

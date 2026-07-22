@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <SDL.h>
+#include "compat/sdl3_compat.h"
 
 #include "List.h"
 #include "F1Spirit.h"
@@ -87,7 +87,7 @@ CPlayerInfo::CPlayerInfo(void)
 
 	accelerate[0] = SDLK_SPACE;
 
-	brake[0] = SDLK_m;
+	brake[0] = SDLK_M;
 
 	joystick[0] = -1;
 
@@ -99,13 +99,13 @@ CPlayerInfo::CPlayerInfo(void)
 
 	add_player();
 
-	up[1] = SDLK_w;
+	up[1] = SDLK_W;
 
-	down[1] = SDLK_s;
+	down[1] = SDLK_S;
 
-	left[1] = SDLK_a;
+	left[1] = SDLK_A;
 
-	right[1] = SDLK_d;
+	right[1] = SDLK_D;
 
 	accelerate[1] = SDLK_LSHIFT;
 
@@ -186,7 +186,7 @@ CPlayerInfo::CPlayerInfo(char *n, char *password)
 
 	accelerate[0] = SDLK_SPACE;
 
-	brake[0] = SDLK_m;
+	brake[0] = SDLK_M;
 
 	joystick[0] = -1;
 
@@ -198,13 +198,13 @@ CPlayerInfo::CPlayerInfo(char *n, char *password)
 
 	add_player();
 
-	up[1] = SDLK_w;
+	up[1] = SDLK_W;
 
-	down[1] = SDLK_s;
+	down[1] = SDLK_S;
 
-	left[1] = SDLK_a;
+	left[1] = SDLK_A;
 
-	right[1] = SDLK_d;
+	right[1] = SDLK_D;
 
 	accelerate[1] = SDLK_LSHIFT;
 

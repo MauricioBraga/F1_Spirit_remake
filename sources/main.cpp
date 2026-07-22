@@ -9,9 +9,9 @@
 
 #include "GL/gl.h"
 #include "GL/glu.h"
-#include "SDL.h"
-#include "SDL_mixer.h"
-#include "SDL_net.h"
+#include "compat/sdl3_compat.h"
+#include <SDL3_mixer/SDL_mixer.h>
+#include "compat/SDL_net.h"
 
 #include "F1Spirit.h"
 #include "sound.h"
@@ -80,11 +80,15 @@ char console_msg[80] = "";
 /*      AUXILIAR FUNCTION DEFINITION:       */
 
 
-SDL_Surface *initialization(int flags)
+/* The window and GL context are real objects in SDL3 (there is no more
+   "the screen surface" the way SDL 1.2's SDL_SetVideoMode() returned).
+   main.cpp owns them; F1SpiritApp.cpp swaps buffers on g_window. */
+SDL_Window *g_window = 0;
+static SDL_GLContext g_gl_context = 0;
+
+SDL_Window *initialization(SDL_WindowFlags flags)
 {
-	const SDL_VideoInfo* info = 0;
-	int bpp = 0;
-	SDL_Surface *screen;
+	SDL_Window *window;
 
 	rg = new TRanrotBGenerator(0);
 
@@ -93,7 +97,7 @@ SDL_Surface *initialization(int flags)
 	output_debug_message("Initializing SDL\n");
 #endif
 
-	if (SDL_Init(SDL_INIT_VIDEO | (sound ? SDL_INIT_AUDIO : 0) | SDL_INIT_JOYSTICK) < 0) {
+	if (!SDL_Init(SDL_INIT_VIDEO | (sound ? SDL_INIT_AUDIO : 0) | SDL_INIT_JOYSTICK)) {
 #ifdef F1SPIRIT_DEBUG_MESSAGES
 		output_debug_message("Video initialization failed: %s\n", SDL_GetError());
 #endif
@@ -105,22 +109,6 @@ SDL_Surface *initialization(int flags)
 	output_debug_message("SDL initialized\n");
 
 #endif
-
-	info = SDL_GetVideoInfo();
-
-	if (!info) {
-#ifdef F1SPIRIT_DEBUG_MESSAGES
-		output_debug_message("Video query failed: %s\n", SDL_GetError());
-#endif
-
-		return 0;
-	} 
-
-	if (fullscreen) {
-		bpp = COLOUR_DEPTH;
-	} else {
-		bpp = info->vfmt->BitsPerPixel;
-	} 
 
 #ifdef F1SPIRIT_DEBUG_MESSAGES
 	output_debug_message("Setting OpenGL attributes\n");
@@ -146,15 +134,26 @@ SDL_Surface *initialization(int flags)
 
 #endif
 
-	flags = SDL_OPENGL | flags;
+	flags = SDL_WINDOW_OPENGL | flags;
 
-	screen = SDL_SetVideoMode(SCREEN_X, SCREEN_Y, bpp, flags);
+	window = SDL_CreateWindow(application_name, SCREEN_X, SCREEN_Y, flags);
 
-	if (screen == 0) {
+	if (window == 0) {
 #ifdef F1SPIRIT_DEBUG_MESSAGES
-		output_debug_message("Video mode set failed: %s\n", SDL_GetError());
+		output_debug_message("Window creation failed: %s\n", SDL_GetError());
 #endif
 
+		return 0;
+	} 
+
+	g_gl_context = SDL_GL_CreateContext(window);
+
+	if (g_gl_context == 0) {
+#ifdef F1SPIRIT_DEBUG_MESSAGES
+		output_debug_message("GL context creation failed: %s\n", SDL_GetError());
+#endif
+
+		SDL_DestroyWindow(window);
 		return 0;
 	} 
 
@@ -163,11 +162,16 @@ SDL_Surface *initialization(int flags)
 
 #endif
 
-	SDL_WM_SetCaption(application_name, 0);
+	{
+		SDL_Surface *icon = SDL_LoadBMP("graphics/f1sicon.bmp");
 
-	SDL_WM_SetIcon(SDL_LoadBMP("graphics/f1sicon.bmp"), NULL);
+		if (icon) {
+			SDL_SetWindowIcon(window, icon);
+			SDL_DestroySurface(icon);
+		} 
+	}
 
-	SDL_ShowCursor(SDL_DISABLE);
+	SDL_HideCursor();
 
 	if (sound) {
 #ifdef F1SPIRIT_DEBUG_MESSAGES
@@ -203,7 +207,13 @@ SDL_Surface *initialization(int flags)
 		network = true;
 	} 
 
-	SDL_EnableUNICODE(1);
+	/* SDL3 dropped SDL_EnableUNICODE(): text translation is now opt-in per
+	   window via SDL_StartTextInput(), and delivered through separate
+	   SDL_EVENT_TEXT_INPUT events rather than a unicode field tacked onto
+	   key events. This game only ever reads discrete SDLK_* key presses
+	   (menus, driving controls, name entry via a custom on-screen keyboard
+	   judging from the lack of any text-input event handling below), so
+	   there is nothing to replace this call with. */
 
 	glGetIntegerv(GL_STENCIL_BITS, &g_stencil_bits);
 
@@ -213,7 +223,9 @@ SDL_Surface *initialization(int flags)
 #endif
 
 
-	return screen;
+	g_window = window;
+
+	return window;
 } /* initialization */
 
 
@@ -236,6 +248,16 @@ void finalization()
 	if (sound)
 		Sound_release();
 
+	if (g_gl_context) {
+		SDL_GL_DestroyContext(g_gl_context);
+		g_gl_context = 0;
+	} 
+
+	if (g_window) {
+		SDL_DestroyWindow(g_window);
+		g_window = 0;
+	} 
+
 	SDL_Quit();
 
 #ifdef F1SPIRIT_DEBUG_MESSAGES
@@ -256,7 +278,7 @@ int PASCAL WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 int main(int argc, char** argv) {
 #endif
 
-	SDL_Surface *screen_sfc;
+	SDL_Window *window;
 	F1SpiritApp *game;
 	KEYBOARDSTATE *k;
 
@@ -270,26 +292,14 @@ int main(int argc, char** argv) {
 	output_debug_message("Application started\n");
 #endif
 
-	screen_sfc = initialization((fullscreen ? SDL_FULLSCREEN : 0));
+	window = initialization((fullscreen ? SDL_WINDOW_FULLSCREEN : 0));
 
-	if (screen_sfc == 0)
+	if (window == 0)
 		return 0;
 
 	k = new KEYBOARDSTATE();
 
 	game = new F1SpiritApp();
-
-	if (fullscreen) {
-		screen_sfc = SDL_SetVideoMode(SCREEN_X, SCREEN_Y, COLOUR_DEPTH, SDL_OPENGL | (fullscreen ? SDL_FULLSCREEN : 0));
-		SDL_WM_SetCaption(application_name, 0);
-		SDL_ShowCursor(SDL_DISABLE);
-		reload_textures++;
-
-		SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
-		SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
-		SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
-		SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-	} 
 
 	time = init_time = SDL_GetTicks();
 
@@ -298,10 +308,10 @@ int main(int argc, char** argv) {
 			switch ( event.type ) {
 					/* Keyboard event */
 
-				case SDL_KEYDOWN:
+				case SDL_EVENT_KEY_DOWN:
 #ifdef __APPLE__
 
-					if (event.key.keysym.sym == SDLK_q) {
+					if (event.key.key == SDLK_Q) {
 						SDLMod modifiers;
 						modifiers = SDL_GetModState();
 
@@ -311,18 +321,18 @@ int main(int argc, char** argv) {
 					}
 
 #else
-					if (event.key.keysym.sym == SDLK_F12) {
+					if (event.key.key == SDLK_F12) {
 						quit = true;
 					} 
 
 #endif
-					if (event.key.keysym.sym == SDLK_F10) {
+					if (event.key.key == SDLK_F10) {
 						game->save_configuration("f1spirit.cfg");
 						game->load_configuration("f1spirit.cfg");
 					} 
 
 #ifdef _WIN32
-					if (event.key.keysym.sym == SDLK_F4) {
+					if (event.key.key == SDLK_F4) {
 						SDLMod modifiers;
 
 						modifiers = SDL_GetModState();
@@ -333,7 +343,7 @@ int main(int argc, char** argv) {
 
 #endif
 #ifdef __APPLE__
-					if (event.key.keysym.sym == SDLK_f) {
+					if (event.key.key == SDLK_F) {
 						SDLMod modifiers;
 
 						modifiers = SDL_GetModState();
@@ -345,26 +355,14 @@ int main(int argc, char** argv) {
 							else
 								fullscreen = true;
 
-							screen_sfc = SDL_SetVideoMode(SCREEN_X, SCREEN_Y, COLOUR_DEPTH, SDL_OPENGL | (fullscreen ? SDL_FULLSCREEN : 0));
-
-							SDL_WM_SetCaption(application_name, 0);
-
-							SDL_ShowCursor(SDL_DISABLE);
+							SDL_SetWindowFullscreen(window, fullscreen);
 
 							reload_textures++;
-
-							SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
-
-							SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
-
-							SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
-
-							SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 						}
 					}
 
 #else
-					if (event.key.keysym.sym == SDLK_RETURN) {
+					if (event.key.key == SDLK_RETURN) {
 						SDLMod modifiers;
 
 						modifiers = SDL_GetModState();
@@ -376,27 +374,15 @@ int main(int argc, char** argv) {
 							else
 								fullscreen = true;
 
-							screen_sfc = SDL_SetVideoMode(SCREEN_X, SCREEN_Y, COLOUR_DEPTH, SDL_OPENGL | (fullscreen ? SDL_FULLSCREEN : 0));
-
-							SDL_WM_SetCaption(application_name, 0);
-
-							SDL_ShowCursor(SDL_DISABLE);
+							SDL_SetWindowFullscreen(window, fullscreen);
 
 							reload_textures++;
-
-							SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
-
-							SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
-
-							SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
-
-							SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 						}
 					}
 
 #endif
 
-					if (event.key.keysym.sym == SDLK_f) {
+					if (event.key.key == SDLK_F) {
 						SDLMod modifiers;
 
 						modifiers = SDL_GetModState();
@@ -410,20 +396,27 @@ int main(int argc, char** argv) {
 						} 
 					} 
 
-					/* Keyboard event */
+					/* Keyboard event: SDL3's SDL_KeyboardEvent no longer nests
+					   a "keysym" sub-struct (and dropped its unicode field
+					   entirely - see the note in initialization() above), so
+					   this now fills in our compat SDL_keysym by hand from the
+					   flat event fields instead of struct-copying event.key.keysym. */
 					SDL_keysym *ks;
 
 					ks = new SDL_keysym();
 
-					*ks = event.key.keysym;
+					ks->scancode = event.key.scancode;
+					ks->sym = event.key.key;
+					ks->unicode = 0;
+					ks->mod = event.key.mod;
 
 					k->keyevents.Add(ks);
 
 					break;
 
-					/* SDL_QUIT event (window close) */
+					/* SDL_EVENT_QUIT event (window close) */
 
-				case SDL_QUIT:
+				case SDL_EVENT_QUIT:
 					quit = true;
 
 					break;

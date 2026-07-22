@@ -146,7 +146,6 @@ class CCar
 
 		friend class CReplayInfo;
 
-		friend void carEngineSoundEffect(int chan, void *stream, int len, void *udata);
 
 	public:
 		CCar(CEngine *e, CBody *body, CBrake *brake, CSuspension *s, CGear *gear, int type, int model, float r, float g, float b, bool player, SOUNDT engine_sound, int engine_channel, GLTile **pextra_tiles, SDL_Surface *car_sfc, SDL_Surface *car_minimap_sfc, class F1SpiritGame *game);
