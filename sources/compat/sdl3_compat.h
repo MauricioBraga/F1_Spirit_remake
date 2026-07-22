@@ -180,4 +180,17 @@ static inline SDL_Joystick *SDL_JoystickOpen(int index)
 #undef SDL_JoystickUpdate
 #define SDL_JoystickUpdate() SDL_UpdateJoysticks()
 
+template <typename A, typename B>
+static inline auto min(A a, B b) -> decltype(a < b ? a : b)
+{
+	return (a < b) ? a : b;
+}
+
+template <typename A, typename B>
+static inline auto max(A a, B b) -> decltype(a > b ? a : b)
+{
+	return (a > b) ? a : b;
+}
+
+
 #endif /* __F1SPIRIT_SDL3_COMPAT_H */
