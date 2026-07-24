@@ -154,8 +154,13 @@ static inline int SDL_PixelFormatBytesPerPixel(SDL_PixelFormat fmt)
 /* ---- SDL_SetAlpha (removed in SDL3; split into blend mode + alpha mod) --- */
 static inline int SDL_SetAlpha(SDL_Surface *surface, Uint32 flag, Uint8 alpha)
 {
-	SDL_SetSurfaceBlendMode(surface, (flag & SDL_SRCALPHA) ? SDL_BLENDMODE_BLEND : SDL_BLENDMODE_NONE);
-	SDL_SetSurfaceAlphaMod(surface, alpha);
+	if (flag & SDL_SRCALPHA) {
+		SDL_SetSurfaceBlendMode(surface, SDL_BLENDMODE_BLEND);
+		SDL_SetSurfaceAlphaMod(surface, alpha);
+	} else {
+		SDL_SetSurfaceBlendMode(surface, SDL_BLENDMODE_NONE);
+		SDL_SetSurfaceAlphaMod(surface, 255);
+	}
 	return 0;
 }
 
