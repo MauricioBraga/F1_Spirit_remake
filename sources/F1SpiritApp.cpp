@@ -666,7 +666,32 @@ void F1SpiritApp::draw()
 
 	glClearColor(0, 0, 0, 0.0);
 
-	glViewport(0, 0, SCREEN_X, SCREEN_Y);
+{
+	int win_w = SCREEN_X, win_h = SCREEN_Y;
+	int vp_x, vp_y, vp_w, vp_h;
+	float target_aspect = (float)SCREEN_X / (float)SCREEN_Y;
+
+	SDL_GetWindowSizeInPixels(g_window, &win_w, &win_h);
+
+	if (win_w <= 0)
+		win_w = SCREEN_X;
+
+	if (win_h <= 0)
+		win_h = SCREEN_Y;
+
+	if ((float)win_w / (float)win_h > target_aspect) {
+		vp_h = win_h;
+		vp_w = (int)(win_h * target_aspect);
+	} else {
+		vp_w = win_w;
+		vp_h = (int)(win_w / target_aspect);
+	}
+
+	vp_x = (win_w - vp_w) / 2;
+	vp_y = (win_h - vp_h) / 2;
+
+	glViewport(vp_x, vp_y, vp_w, vp_h);
+}
 
 	ratio = (float)SCREEN_X / float(SCREEN_Y);
 
