@@ -87,12 +87,19 @@ static int find_free_channel(void)
 
 static void play_on_track(MIX_Track *track, MIX_Audio *audio, int loops)
 {
+	SDL_PropertiesID props;
+
 	if (!track || !audio)
 		return;
 
 	MIX_SetTrackAudio(track, audio);
-	MIX_SetTrackLoops(track, loops);
-	MIX_PlayTrack(track, 0);
+
+	props = SDL_CreateProperties();
+	SDL_SetNumberProperty(props, MIX_PROP_PLAY_LOOPS_NUMBER, loops);
+	
+	// mix_play_track needs to receive the loop information through properties.
+	MIX_PlayTrack(track, props);
+	SDL_DestroyProperties(props);
 }
 
 bool Sound_initialization(void)
