@@ -121,7 +121,9 @@ int Sound_initialization(int nc, int nrc)
 		return -1;
 	}
 
-	mixer = MIX_CreateMixerDevice(0, NULL);
+	// SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK is the default playback device, 
+	// but you can also specify a device name if you want to use a specific audio device.
+	mixer = MIX_CreateMixerDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, NULL);
 
 	if (!mixer) {
 		sound_enabled = false;
