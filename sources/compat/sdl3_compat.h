@@ -46,6 +46,41 @@ typedef SDL_Keymod  SDLMod;
 #define KMOD_ALT  SDL_KMOD_ALT
 #define KMOD_META SDL_KMOD_GUI
 
+/* SDL 1.2's original small, dense keysym numbering for the extended keys
+   this codebase actually uses as keyboard[]/old_keyboard[] array indices
+   (and as replay-file/save-file values). SDL3's real SDLK_* for these is a
+   completely different, huge "extended" value
+   (SDL_SCANCODE_TO_KEYCODE(scancode)), which would be useless as a small
+   array index. Letters/digits/punctuation/RETURN/ESCAPE/SPACE/TAB/
+   BACKSPACE are NOT redefined here because SDL3 already keeps the same
+   plain-ASCII values SDL 1.2 used for those.
+   main.cpp's own hotkey checks (F4/F10/F12) compare event.key.scancode
+   against SDL_SCANCODE_* instead of these, specifically to avoid clashing
+   with this table. */
+#undef SDLK_UP
+#define SDLK_UP 273
+#undef SDLK_DOWN
+#define SDLK_DOWN 274
+#undef SDLK_RIGHT
+#define SDLK_RIGHT 275
+#undef SDLK_LEFT
+#define SDLK_LEFT 276
+#undef SDLK_PAGEUP
+#define SDLK_PAGEUP 280
+#undef SDLK_PAGEDOWN
+#define SDLK_PAGEDOWN 281
+#undef SDLK_F4
+#define SDLK_F4 285
+#undef SDLK_F10
+#define SDLK_F10 291
+#undef SDLK_F12
+#define SDLK_F12 293
+#undef SDLK_LSHIFT
+#define SDLK_LSHIFT 304
+#undef SDLK_LCTRL
+#define SDLK_LCTRL 306
+
+
 /* SDL3 dropped the keysym struct (and unicode translation altogether, in
    favour of text-input events). We keep the shape around because replay
    files (.rpl) and the input-remapping code serialize it. */
@@ -58,7 +93,7 @@ struct SDL_keysym {
 
 /* SDL3 has no fixed "last keycode" - use the scancode table size, which is
    what the code actually indexes the keyboard-state array with. */
-#define SDLK_LAST SDL_SCANCODE_COUNT
+#define SDLK_LAST 323
 
 /* ---- SDL_CreateRGBSurface (removed in SDL3) ---- */
 static inline SDL_Surface *SDL_CreateRGBSurface(Uint32 /*flags*/, int width, int height, int depth,

@@ -123,6 +123,16 @@ SDL_Window *initialization(SDL_WindowFlags flags)
 
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
+	/* This game draws everything with legacy fixed-function OpenGL
+	   (glMatrixMode/glLoadIdentity/gluPerspective/gluLookAt here, plus
+	   glBegin/glVertex/glColor throughout GLTile.cpp and friends), which
+	   only exists in the Compatibility Profile. SDL3's default profile is
+	   platform/driver-dependent - without this, some drivers hand back a
+	   Core Profile context, where none of the drawing calls below do
+	   anything (silently), even though every non-GPU part of the game
+	   keeps running normally. */
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
+
 #ifdef F1SPIRIT_DEBUG_MESSAGES
 	output_debug_message("OpenGL attributes set\n");
 
@@ -159,8 +169,28 @@ SDL_Window *initialization(SDL_WindowFlags flags)
 
 #ifdef F1SPIRIT_DEBUG_MESSAGES
 	output_debug_message("Video mode initialized\n");
+	
+	/* Diagnostics: find out what GL implementation we actually got. */
+	output_debug_message("GL_VENDOR: %s\n", (const char *)glGetString(GL_VENDOR));
+	output_debug_message("GL_RENDERER: %s\n", (const char *)glGetString(GL_RENDERER));
+	output_debug_message("GL_VERSION: %s\n", (const char *)glGetString(GL_VERSION));
+	output_debug_message("glGetError() right after context creation: %i\n", glGetError());
 
+	{
+		int drawable_w = 0, drawable_h = 0;
+		SDL_GetWindowSizeInPixels(window, &drawable_w, &drawable_h);
+		output_debug_message("Window size (pixels): %ix%i (SCREEN_X/Y = %ix%i)\n", drawable_w, drawable_h, SCREEN_X, SCREEN_Y);
+	}
 #endif
+
+	if (!SDL_GL_SetSwapInterval(1)) {
+#ifdef F1SPIRIT_DEBUG_MESSAGES
+		output_debug_message("SDL_GL_SetSwapInterval(1) failed: %s (trying 0)\n", SDL_GetError());
+#endif
+		SDL_GL_SetSwapInterval(0);
+	} 
+
+
 
 	{
 		SDL_Surface *icon = SDL_LoadBMP("graphics/f1sicon.bmp");
@@ -172,6 +202,7 @@ SDL_Window *initialization(SDL_WindowFlags flags)
 	}
 
 	SDL_HideCursor();
+	SDL_StartTextInput(window);
 
 	if (sound) {
 #ifdef F1SPIRIT_DEBUG_MESSAGES
@@ -321,18 +352,18 @@ int main(int argc, char** argv) {
 					}
 
 #else
-					if (event.key.key == SDLK_F12) {
+					if (event.key.scancode == SDL_SCANCODE_F12) {
 						quit = true;
 					} 
 
 #endif
-					if (event.key.key == SDLK_F10) {
+					if (event.key.scancode == SDL_SCANCODE_F10) {
 						game->save_configuration("f1spirit.cfg");
 						game->load_configuration("f1spirit.cfg");
 					} 
 
 #ifdef _WIN32
-					if (event.key.key == SDLK_F4) {
+					if (event.key.scancode == SDL_SCANCODE_F4) {
 						SDLMod modifiers;
 
 						modifiers = SDL_GetModState();
@@ -414,7 +445,23 @@ int main(int argc, char** argv) {
 
 					break;
 
-					/* SDL_EVENT_QUIT event (window close) */
+				case SDL_EVENT_TEXT_INPUT: {
+					SDL_keysym *tks;
+
+					tks = new SDL_keysym();
+
+					tks->scancode = 0;
+					tks->sym = 0;
+					tks->unicode = (Uint16)(unsigned char)event.text.text[0];
+					tks->mod = 0;
+
+					k->keyevents.Add(tks);
+
+					break;
+				}
+
+
+				/* SDL_EVENT_QUIT event (window close) */
 
 				case SDL_EVENT_QUIT:
 					quit = true;

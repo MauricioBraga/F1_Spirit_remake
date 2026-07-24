@@ -70,6 +70,24 @@ KEYBOARDSTATE::~KEYBOARDSTATE(void)
 
 } 
 
+static SDL_Scancode classic_key_to_scancode(int classic_key)
+{
+	switch (classic_key) {
+		case SDLK_UP: return SDL_SCANCODE_UP;
+		case SDLK_DOWN: return SDL_SCANCODE_DOWN;
+		case SDLK_LEFT: return SDL_SCANCODE_LEFT;
+		case SDLK_RIGHT: return SDL_SCANCODE_RIGHT;
+		case SDLK_PAGEUP: return SDL_SCANCODE_PAGEUP;
+		case SDLK_PAGEDOWN: return SDL_SCANCODE_PAGEDOWN;
+		case SDLK_F4: return SDL_SCANCODE_F4;
+		case SDLK_F10: return SDL_SCANCODE_F10;
+		case SDLK_F12: return SDL_SCANCODE_F12;
+		case SDLK_LSHIFT: return SDL_SCANCODE_LSHIFT;
+		case SDLK_LCTRL: return SDL_SCANCODE_LCTRL;
+		default: return SDL_GetScancodeFromKey((SDL_Keycode)classic_key, NULL);
+	}
+}
+
 
 void KEYBOARDSTATE::cycle(void)
 {
@@ -79,9 +97,14 @@ void KEYBOARDSTATE::cycle(void)
 	/* Update keyboard: */
 
 	for (i = 0;i < SDLK_LAST;i++) {
+		SDL_Scancode sc = classic_key_to_scancode(i);
+
 		old_keyboard[i] = keyboard[i];
-		keyboard[i] = k[i] ? 1 : 0;
+		keyboard[i] = (sc != SDL_SCANCODE_UNKNOWN && k[sc]) ? 1 : 0;
 	} 
+
+	/* (o resto do joystick continua exatamente igual) */
+
 
 	if (n_joysticks > 0) {
 		SDL_JoystickUpdate();

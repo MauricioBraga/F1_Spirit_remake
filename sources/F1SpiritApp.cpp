@@ -534,6 +534,7 @@ bool F1SpiritApp::cycle(KEYBOARDSTATE *k)
 
 	if (state_cycle == 0) {
 		output_debug_message("First Cycle started for state %i...\n", state);
+		output_debug_message("glGetError() at draw() start: %i\n", glGetError());
 	}
 	
 #endif
@@ -685,6 +686,12 @@ void F1SpiritApp::draw()
 
 	glEnable(GL_BLEND);
 
+#ifdef F1SPIRIT_DEBUG_MESSAGES
+	if (state_cycle == 0) {
+		output_debug_message("glGetError() after matrix/lighting setup: %i\n", glGetError());
+	}
+#endif
+
 	switch (state) {
 
 		case APP_STATE_DISCLAIMER:
@@ -765,6 +772,18 @@ void F1SpiritApp::draw()
 	glDisable(GL_BLEND);
 
 	SDL_GL_SwapWindow(g_window);
+
+#ifdef F1SPIRIT_DEBUG_MESSAGES
+	if (state_cycle == 0) {
+		output_debug_message("glGetError() right before SwapWindow: %i\n", glGetError());
+	}
+#endif
+
+	if (!SDL_GL_SwapWindow(g_window)) {
+#ifdef F1SPIRIT_DEBUG_MESSAGES
+		output_debug_message("SDL_GL_SwapWindow failed: %s\n", SDL_GetError());
+#endif
+	} 
 }
 
 void F1SpiritApp::blank_hiscores(void)
