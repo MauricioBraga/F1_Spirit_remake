@@ -9,8 +9,10 @@
 
 enum filetype { GAMEDATA, USERDATA };
 
-#ifndef _WIN32
-int mkdirp(const char *fqfn, mode_t mode);
-#endif
+// #ifndef _WIN32
+// int mkdirp(const char *fqfn, mode_t mode);
+// #endif
+int mkdirp(const char *fqfn);
+
 FILE *f1open(const char *f, const char *m, const enum filetype t);
 
