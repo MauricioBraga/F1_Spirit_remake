@@ -123,6 +123,9 @@ SDL_Window *initialization(SDL_WindowFlags flags)
 
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
+
+	SDL_GL_SetAttribute(SDL_GL_FRAMEBUFFER_SRGB_CAPABLE, 1);
+
 	/* This game draws everything with legacy fixed-function OpenGL
 	   (glMatrixMode/glLoadIdentity/gluPerspective/gluLookAt here, plus
 	   glBegin/glVertex/glColor throughout GLTile.cpp and friends), which
@@ -132,6 +135,8 @@ SDL_Window *initialization(SDL_WindowFlags flags)
 	   anything (silently), even though every non-GPU part of the game
 	   keeps running normally. */
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
 
 #ifdef F1SPIRIT_DEBUG_MESSAGES
 	output_debug_message("OpenGL attributes set\n");
@@ -176,6 +181,12 @@ SDL_Window *initialization(SDL_WindowFlags flags)
 	output_debug_message("GL_VERSION: %s\n", (const char *)glGetString(GL_VERSION));
 	output_debug_message("glGetError() right after context creation: %i\n", glGetError());
 
+	/* diagnostics: checks if double buffering is being done */
+	int db_value = -1, srgb_value = -1;
+	SDL_GL_GetAttribute(SDL_GL_DOUBLEBUFFER, &db_value);
+	SDL_GL_GetAttribute(SDL_GL_FRAMEBUFFER_SRGB_CAPABLE, &srgb_value);
+	output_debug_message("Actual SDL_GL_DOUBLEBUFFER: %i, SDL_GL_FRAMEBUFFER_SRGB_CAPABLE: %i\n", db_value, srgb_value);
+
 	{
 		int drawable_w = 0, drawable_h = 0;
 		SDL_GetWindowSizeInPixels(window, &drawable_w, &drawable_h);
@@ -183,7 +194,7 @@ SDL_Window *initialization(SDL_WindowFlags flags)
 	}
 #endif
 
-	if (!SDL_GL_SetSwapInterval(1)) {
+	if (!SDL_GL_SetSwapInterval(0)) {
 #ifdef F1SPIRIT_DEBUG_MESSAGES
 		output_debug_message("SDL_GL_SetSwapInterval(1) failed: %s (trying 0)\n", SDL_GetError());
 #endif
@@ -388,6 +399,17 @@ int main(int argc, char** argv) {
 
 							SDL_SetWindowFullscreen(window, fullscreen);
 
+							if (!fullscreen)
+								SDL_SetWindowSize(window, SCREEN_X, SCREEN_Y);
+
+							// forces the clearing of screen buffers after switching 
+							// between full-screen and windowed modes.	
+							glClearColor(0, 0, 0, 0);
+							glClear(GL_COLOR_BUFFER_BIT);
+							SDL_GL_SwapWindow(window);
+							glClear(GL_COLOR_BUFFER_BIT);
+							SDL_GL_SwapWindow(window);	
+							
 							reload_textures++;
 						}
 					}
@@ -407,6 +429,17 @@ int main(int argc, char** argv) {
 
 							SDL_SetWindowFullscreen(window, fullscreen);
 
+							if (!fullscreen)
+								SDL_SetWindowSize(window, SCREEN_X, SCREEN_Y);
+
+							// forces the clearing of screen buffers after switching 
+							// between full-screen and windowed modes.	
+							glClearColor(0, 0, 0, 0);
+							glClear(GL_COLOR_BUFFER_BIT);
+							SDL_GL_SwapWindow(window);	
+							glClear(GL_COLOR_BUFFER_BIT);
+							SDL_GL_SwapWindow(window);	
+							
 							reload_textures++;
 						}
 					}
