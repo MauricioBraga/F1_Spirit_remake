@@ -48,10 +48,8 @@ int mkdirp(const char *fqfn)
 FILE *f1open(const char *f, const char *m, const enum filetype t)
 {
 #ifdef _WIN32
-	// USERDATA writes/appends need their subdirectory (players/, replays/,
-	// highscores/) to already exist - fopen() never creates it. The
-	// original distribution shipped those as pre-existing empty folders;
-	// a fresh checkout/build tree doesn't have them.
+	// fix: USERDATA writes/appends need their subdirectory (players/, replays/,
+	// highscores/) to already exist - fopen() never created it. 
 	if (t == USERDATA && (strchr(m, 'w') != 0 || strchr(m, 'a') != 0))
 		mkdirp(f);
 	return(fopen(f, m));
