@@ -193,8 +193,15 @@ SDL_Window *initialization(SDL_WindowFlags flags)
 		output_debug_message("Window size (pixels): %ix%i (SCREEN_X/Y = %ix%i)\n", drawable_w, drawable_h, SCREEN_X, SCREEN_Y);
 	}
 #endif
-
-	if (!SDL_GL_SetSwapInterval(0)) {
+	/* A swap interval of 1 tells the GPU to wait for one v-blank before swapping the front 
+	* and back buffers. A swap interval of 0 specifies that the GPU should never wait for 
+	* v-blanks, thus performing buffer swaps as soon as possible when rendering for a frame 
+	* is finished. Video drivers can override these values, forcing a swap interval of 1 or 0 
+	* depending on settings the user provided in the video card's control panel.*/
+	// if we pass 0, windowed mode doesn't draw anything (keeps a black screen).
+	// if we pass 1,  windowed mode draws correctly, but there's a black effect being draw.
+	// perhaps the drawing is happening without synchronizing with the monitor refresh rate?
+	if (!SDL_GL_SetSwapInterval(1)) {
 #ifdef F1SPIRIT_DEBUG_MESSAGES
 		output_debug_message("SDL_GL_SetSwapInterval(1) failed: %s (trying 0)\n", SDL_GetError());
 #endif
