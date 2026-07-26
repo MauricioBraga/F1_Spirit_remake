@@ -4,7 +4,6 @@
 
 #ifdef _WIN32
 #include "windows.h"
-// #include "glut.h"
 #endif
 
 #include <stdio.h>
@@ -62,6 +61,38 @@ extern bool network;
 extern int network_tcp_port;
 extern int network_udp_port;
 extern SDL_Window *g_window;
+
+/* The current letterboxed game viewport, in real window pixels - kept in
+   sync each frame by F1SpiritApp::draw() (see the glViewport block
+   below). Anything that temporarily sets its own sub-viewport for a
+   thumbnail/preview render (track preview in state_menu_draw.cpp, replay
+   preview in state_replaymanager.cpp) needs to restore/derive its
+   viewport from THIS instead of the old hardcoded
+   glViewport(0, 0, SCREEN_X, SCREEN_Y), which stopped matching reality
+   the moment letterboxing was introduced. */
+int g_game_viewport_x = 0;
+int g_game_viewport_y = 0;
+int g_game_viewport_w = 640;
+int g_game_viewport_h = 480;
+
+void restore_game_viewport(void)
+{
+	glViewport(g_game_viewport_x, g_game_viewport_y, g_game_viewport_w, g_game_viewport_h);
+}
+
+/* Maps a rectangle given in "logical" 640x480 game-space (same
+   bottom-left-origin convention the rest of the game's OpenGL calls use)
+   into real window pixel coordinates within the current letterboxed
+   viewport - for temporary sub-viewport/scissor renders. */
+void map_game_sub_viewport(int lx, int ly, int lw, int lh, int *out_x, int *out_y, int *out_w, int *out_h)
+{
+	float scale = (float)g_game_viewport_w / (float)SCREEN_X;
+
+	*out_x = g_game_viewport_x + (int)(lx * scale);
+	*out_y = g_game_viewport_y + (int)(ly * scale);
+	*out_w = (int)(lw * scale);
+	*out_h = (int)(lh * scale);
+}
 
 extern bool show_console_msg;
 extern char console_msg[80];
@@ -534,7 +565,6 @@ bool F1SpiritApp::cycle(KEYBOARDSTATE *k)
 
 	if (state_cycle == 0) {
 		output_debug_message("First Cycle started for state %i...\n", state);
-		output_debug_message("glGetError() at draw() start: %i\n", glGetError());
 	}
 	
 #endif
@@ -626,6 +656,7 @@ void F1SpiritApp::draw()
 
 	if (state_cycle == 0) {
 		output_debug_message("First Drawing cycle started for state %i...\n", state);
+		output_debug_message("glGetError() at draw() start: %i\n", glGetError());
 	}
 
 #endif
@@ -666,32 +697,50 @@ void F1SpiritApp::draw()
 
 	glClearColor(0, 0, 0, 0.0);
 
-{
-	int win_w = SCREEN_X, win_h = SCREEN_Y;
-	int vp_x, vp_y, vp_w, vp_h;
-	float target_aspect = (float)SCREEN_X / (float)SCREEN_Y;
+	{
+		int win_w = SCREEN_X, win_h = SCREEN_Y;
+		int vp_x, vp_y, vp_w, vp_h;
+		float target_aspect = (float)SCREEN_X / (float)SCREEN_Y;
 
-	SDL_GetWindowSizeInPixels(g_window, &win_w, &win_h);
+		/* The window/backbuffer isn't necessarily SCREEN_X x SCREEN_Y any
+		   more: SDL_SetWindowFullscreen() (used for the fullscreen toggle)
+		   switches to the desktop's native resolution rather than an
+		   exact 640x480 mode, so glViewport(0,0,SCREEN_X,SCREEN_Y) would
+		   only cover a small corner of a much bigger backbuffer. Scale and
+		   center a SCREEN_X:SCREEN_Y viewport within whatever the real
+		   window size is instead (classic letterboxing), so the game
+		   always fills as much of the window as it can without
+		   distorting its original 4:3 framing. */
+		SDL_GetWindowSizeInPixels(g_window, &win_w, &win_h);
 
-	if (win_w <= 0)
-		win_w = SCREEN_X;
+		if (win_w <= 0)
+			win_w = SCREEN_X;
 
-	if (win_h <= 0)
-		win_h = SCREEN_Y;
+		if (win_h <= 0)
+			win_h = SCREEN_Y;
 
-	if ((float)win_w / (float)win_h > target_aspect) {
-		vp_h = win_h;
-		vp_w = (int)(win_h * target_aspect);
-	} else {
-		vp_w = win_w;
-		vp_h = (int)(win_w / target_aspect);
+		if ((float)win_w / (float)win_h > target_aspect) {
+			vp_h = win_h;
+			vp_w = (int)(win_h * target_aspect);
+		} else {
+			vp_w = win_w;
+			vp_h = (int)(win_w / target_aspect);
+		}
+
+		vp_x = (win_w - vp_w) / 2;
+		vp_y = (win_h - vp_h) / 2;
+
+		/* Remember this so restore_game_viewport()/map_game_sub_viewport()
+		   (used by the track-preview and replay-preview thumbnails) stay
+		   in sync with whatever we just computed here, instead of falling
+		   back to the old hardcoded glViewport(0,0,SCREEN_X,SCREEN_Y). */
+		g_game_viewport_x = vp_x;
+		g_game_viewport_y = vp_y;
+		g_game_viewport_w = vp_w;
+		g_game_viewport_h = vp_h;
+
+		glViewport(vp_x, vp_y, vp_w, vp_h);
 	}
-
-	vp_x = (win_w - vp_w) / 2;
-	vp_y = (win_h - vp_h) / 2;
-
-	glViewport(vp_x, vp_y, vp_w, vp_h);
-}
 
 	ratio = (float)SCREEN_X / float(SCREEN_Y);
 
@@ -795,8 +844,6 @@ void F1SpiritApp::draw()
 	}
 	
 	glDisable(GL_BLEND);
-
-	SDL_GL_SwapWindow(g_window);
 
 #ifdef F1SPIRIT_DEBUG_MESSAGES
 	if (state_cycle == 0) {

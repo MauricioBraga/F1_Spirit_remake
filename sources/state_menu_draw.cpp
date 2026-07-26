@@ -425,15 +425,27 @@ void F1SpiritApp::menu_draw(void)
 
 				glEnable( GL_SCISSOR_TEST );
 
-				glScissor(32, 480 - (24 + 256), 256, 256);
+				{
+					int sx, sy, sw, sh;
+					map_game_sub_viewport(32, 480 - (24 + 256), 256, 256, &sx, &sy, &sw, &sh);
+					glScissor(sx, sy, sw, sh);
+				}
 
-				glViewport(32 - 42, 480 - (24 + 256), 341, 256);
+				{
+					int vx, vy, vw, vh;
+					map_game_sub_viewport(32 - 42, 480 - (24 + 256), 341, 256, &vx, &vy, &vw, &vh);
+					glViewport(vx, vy, vw, vh);
+				}
 
 				menu_track_viewer->draw();
 
-				glViewport(0, 0, SCREEN_X, SCREEN_Y);
+				restore_game_viewport();
 
-				glScissor(0, 0, 640, 480);
+				{
+					int sx, sy, sw, sh;
+					map_game_sub_viewport(0, 0, 640, 480, &sx, &sy, &sw, &sh);
+					glScissor(sx, sy, sw, sh);
+				}
 
 				glDisable( GL_SCISSOR_TEST );
 

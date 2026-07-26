@@ -18,7 +18,7 @@
 
 #define MSG_ACK    0
 #define MSG_NACK   1
-#define MSG_REGISTER  2 /* va acompañado de 'size' (2 bytes) + 'name' (size bytes) */
+#define MSG_REGISTER  2 /* va acompaï¿½ado de 'size' (2 bytes) + 'name' (size bytes) */
 #define MSG_UNREGISTER  3
 #define MSG_CHAT   4 /* namesize + name + msgsize + msg */
 #define MSG_NAME_QUERY  5
@@ -63,6 +63,11 @@ class ChatMessage
 		char message[256];
 };
 
+
+/* Correctly restores/maps a viewport under the dynamic letterboxed game
+   viewport - see the definitions in F1SpiritApp.cpp. */
+void restore_game_viewport(void);
+void map_game_sub_viewport(int lx, int ly, int lw, int lh, int *out_x, int *out_y, int *out_w, int *out_h);
 
 class F1SpiritApp
 {

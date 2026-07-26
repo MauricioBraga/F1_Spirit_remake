@@ -56,6 +56,21 @@ int COLOUR_DEPTH = 32;
 int MAX_CONNECTIONS = 16;
 bool sound = true;
 bool fullscreen = false;
+
+/* See the call site in initialization() for why this depends on
+   windowed vs. fullscreen. Called at startup and again every time
+   fullscreen is toggled at runtime (Alt+Enter/Alt+F4/Alt+F - see the
+   event loop in main()). */
+void apply_swap_interval_for_mode(void)
+{
+	int wanted = fullscreen ? 0 : 1;
+
+	if (!SDL_GL_SetSwapInterval(wanted)) {
+#ifdef F1SPIRIT_DEBUG_MESSAGES
+		output_debug_message("SDL_GL_SetSwapInterval(%i) failed: %s\n", wanted, SDL_GetError());
+#endif
+	} 
+} /* apply_swap_interval_for_mode */
 bool network = true;
 int network_tcp_port = 32124;
 int network_udp_port = 32125;
@@ -121,9 +136,28 @@ SDL_Window *initialization(SDL_WindowFlags flags)
 
 	SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
 
+	/* SDL3 defaults SDL_GL_ALPHA_SIZE to 8 bits if left unset, so without
+	   this the window's own backbuffer (not the game's textures - those
+	   are a separate matter, already handled) gets an 8-bit alpha
+	   channel by default. The game runs glEnable(GL_BLEND) globally for
+	   the whole frame, so that alpha channel ends up with varying,
+	   non-opaque values wherever anything semi-transparent was drawn.
+	   This is a normal, non-layered window with no legitimate use for
+	   per-pixel window transparency, so ask for zero alpha bits instead -
+	   removing any ambiguity in how Windows composites this window in
+	   windowed (DWM) mode vs. exclusive fullscreen, which bypasses the
+	   compositor entirely and never had this ambiguity in the first
+	   place. */
+	SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 0);
+
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
-
+	/* Windows' DWM compositor is known to apply its own gamma/color
+	   handling to composited (windowed) legacy-OpenGL content, making it
+	   look darker/washed out compared to exclusive fullscreen, which
+	   bypasses the compositor and shows the raw framebuffer. Requesting
+	   an sRGB-capable framebuffer lets DWM interpret our output correctly
+	   instead of guessing. */
 	SDL_GL_SetAttribute(SDL_GL_FRAMEBUFFER_SRGB_CAPABLE, 1);
 
 	/* This game draws everything with legacy fixed-function OpenGL
@@ -135,8 +169,6 @@ SDL_Window *initialization(SDL_WindowFlags flags)
 	   anything (silently), even though every non-GPU part of the game
 	   keeps running normally. */
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
 
 #ifdef F1SPIRIT_DEBUG_MESSAGES
 	output_debug_message("OpenGL attributes set\n");
@@ -174,18 +206,19 @@ SDL_Window *initialization(SDL_WindowFlags flags)
 
 #ifdef F1SPIRIT_DEBUG_MESSAGES
 	output_debug_message("Video mode initialized\n");
-	
+
 	/* Diagnostics: find out what GL implementation we actually got. */
 	output_debug_message("GL_VENDOR: %s\n", (const char *)glGetString(GL_VENDOR));
 	output_debug_message("GL_RENDERER: %s\n", (const char *)glGetString(GL_RENDERER));
 	output_debug_message("GL_VERSION: %s\n", (const char *)glGetString(GL_VERSION));
 	output_debug_message("glGetError() right after context creation: %i\n", glGetError());
 
-	/* diagnostics: checks if double buffering is being done */
-	int db_value = -1, srgb_value = -1;
-	SDL_GL_GetAttribute(SDL_GL_DOUBLEBUFFER, &db_value);
-	SDL_GL_GetAttribute(SDL_GL_FRAMEBUFFER_SRGB_CAPABLE, &srgb_value);
-	output_debug_message("Actual SDL_GL_DOUBLEBUFFER: %i, SDL_GL_FRAMEBUFFER_SRGB_CAPABLE: %i\n", db_value, srgb_value);
+	{
+		int db_value = -1, srgb_value = -1;
+		SDL_GL_GetAttribute(SDL_GL_DOUBLEBUFFER, &db_value);
+		SDL_GL_GetAttribute(SDL_GL_FRAMEBUFFER_SRGB_CAPABLE, &srgb_value);
+		output_debug_message("Actual SDL_GL_DOUBLEBUFFER: %i, SDL_GL_FRAMEBUFFER_SRGB_CAPABLE: %i\n", db_value, srgb_value);
+	}
 
 	{
 		int drawable_w = 0, drawable_h = 0;
@@ -193,22 +226,16 @@ SDL_Window *initialization(SDL_WindowFlags flags)
 		output_debug_message("Window size (pixels): %ix%i (SCREEN_X/Y = %ix%i)\n", drawable_w, drawable_h, SCREEN_X, SCREEN_Y);
 	}
 #endif
-	/* A swap interval of 1 tells the GPU to wait for one v-blank before swapping the front 
-	* and back buffers. A swap interval of 0 specifies that the GPU should never wait for 
-	* v-blanks, thus performing buffer swaps as soon as possible when rendering for a frame 
-	* is finished. Video drivers can override these values, forcing a swap interval of 1 or 0 
-	* depending on settings the user provided in the video card's control panel.*/
-	// if we pass 0, windowed mode doesn't draw anything (keeps a black screen).
-	// if we pass 1,  windowed mode draws correctly, but there's a black effect being draw.
-	// perhaps the drawing is happening without synchronizing with the monitor refresh rate?
-	if (!SDL_GL_SetSwapInterval(1)) {
-#ifdef F1SPIRIT_DEBUG_MESSAGES
-		output_debug_message("SDL_GL_SetSwapInterval(1) failed: %s (trying 0)\n", SDL_GetError());
-#endif
-		SDL_GL_SetSwapInterval(0);
-	} 
 
-
+	/* Empirically, on at least some Intel driver/Windows/DWM
+	   combinations, this game's legacy fixed-function OpenGL rendering
+	   wants different vsync behavior depending on windowed vs. exclusive
+	   fullscreen: vsync ON is what makes windowed mode show anything at
+	   all (with vsync OFF, windowed mode never presented a single
+	   frame), while vsync OFF measurably reduces (though doesn't fully
+	   eliminate) a duplicated-geometry artifact seen in fullscreen. This
+	   also gets re-applied every time fullscreen is toggled at runtime. */
+	apply_swap_interval_for_mode();
 
 	{
 		SDL_Surface *icon = SDL_LoadBMP("graphics/f1sicon.bmp");
@@ -220,6 +247,9 @@ SDL_Window *initialization(SDL_WindowFlags flags)
 	}
 
 	SDL_HideCursor();
+
+	/* Needed for the SDL_EVENT_TEXT_INPUT events the hiscore/race-result
+	   name-entry text boxes rely on (see the event loop in main()). */
 	SDL_StartTextInput(window);
 
 	if (sound) {
@@ -257,12 +287,11 @@ SDL_Window *initialization(SDL_WindowFlags flags)
 	} 
 
 	/* SDL3 dropped SDL_EnableUNICODE(): text translation is now opt-in per
-	   window via SDL_StartTextInput(), and delivered through separate
-	   SDL_EVENT_TEXT_INPUT events rather than a unicode field tacked onto
-	   key events. This game only ever reads discrete SDLK_* key presses
-	   (menus, driving controls, name entry via a custom on-screen keyboard
-	   judging from the lack of any text-input event handling below), so
-	   there is nothing to replace this call with. */
+	   window via SDL_StartTextInput() (called above, right after
+	   SDL_HideCursor()), and delivered through separate SDL_EVENT_TEXT_INPUT
+	   events instead of a unicode field tacked onto key-down events -
+	   handled in the event loop in main(), since state_menu.cpp and
+	   state_race_result.cpp's name-entry text boxes read ks->unicode. */
 
 	glGetIntegerv(GL_STENCIL_BITS, &g_stencil_bits);
 
@@ -357,7 +386,15 @@ int main(int argc, char** argv) {
 			switch ( event.type ) {
 					/* Keyboard event */
 
-				case SDL_EVENT_KEY_DOWN:
+				case SDL_EVENT_KEY_DOWN: {
+					/* Tracks whether this keydown was already consumed as a
+					   hotkey (Alt+Enter/Alt+F4/Alt+F/F10/F12/...), so it
+					   doesn't also get recorded into k->keyevents and misread
+					   by the game itself (e.g. a name-entry text box reading
+					   the same Enter keypress as "confirm" right after it
+					   was used to toggle fullscreen). */
+					bool consumed_by_hotkey = false;
+
 #ifdef __APPLE__
 
 					if (event.key.key == SDLK_Q) {
@@ -398,6 +435,8 @@ int main(int argc, char** argv) {
 						modifiers = SDL_GetModState();
 
 						if ((modifiers&KMOD_META) != 0) {
+							consumed_by_hotkey = true;
+
 							/* Toggle FULLSCREEN mode: */
 							if (fullscreen)
 								fullscreen = false;
@@ -406,17 +445,30 @@ int main(int argc, char** argv) {
 
 							SDL_SetWindowFullscreen(window, fullscreen);
 
+							apply_swap_interval_for_mode();
+
+							/* Defensive: some drivers don't reliably restore
+							   the previous windowed size/backbuffer on their
+							   own after a fullscreen round trip, which can
+							   leave stale content visible. Force it back to
+							   the game's native size explicitly. */
 							if (!fullscreen)
 								SDL_SetWindowSize(window, SCREEN_X, SCREEN_Y);
 
-							// forces the clearing of screen buffers after switching 
-							// between full-screen and windowed modes.	
+							/* Defensive: explicitly flush both halves of the
+							   double-buffered swap chain right after a
+							   fullscreen/windowed transition. On some
+							   drivers, the old (differently-sized)
+							   backbuffer content can otherwise linger
+							   composited behind the next few real frames
+							   (seen as an oversized "ghost" of whatever was
+							   on screen before the switch). */
 							glClearColor(0, 0, 0, 0);
 							glClear(GL_COLOR_BUFFER_BIT);
 							SDL_GL_SwapWindow(window);
 							glClear(GL_COLOR_BUFFER_BIT);
-							SDL_GL_SwapWindow(window);	
-							
+							SDL_GL_SwapWindow(window);
+
 							reload_textures++;
 						}
 					}
@@ -428,6 +480,8 @@ int main(int argc, char** argv) {
 						modifiers = SDL_GetModState();
 
 						if ((modifiers&KMOD_ALT) != 0) {
+							consumed_by_hotkey = true;
+
 							/* Toggle FULLSCREEN mode: */
 							if (fullscreen)
 								fullscreen = false;
@@ -436,17 +490,30 @@ int main(int argc, char** argv) {
 
 							SDL_SetWindowFullscreen(window, fullscreen);
 
+							apply_swap_interval_for_mode();
+
+							/* Defensive: some drivers don't reliably restore
+							   the previous windowed size/backbuffer on their
+							   own after a fullscreen round trip, which can
+							   leave stale content visible. Force it back to
+							   the game's native size explicitly. */
 							if (!fullscreen)
 								SDL_SetWindowSize(window, SCREEN_X, SCREEN_Y);
 
-							// forces the clearing of screen buffers after switching 
-							// between full-screen and windowed modes.	
+							/* Defensive: explicitly flush both halves of the
+							   double-buffered swap chain right after a
+							   fullscreen/windowed transition. On some
+							   drivers, the old (differently-sized)
+							   backbuffer content can otherwise linger
+							   composited behind the next few real frames
+							   (seen as an oversized "ghost" of whatever was
+							   on screen before the switch). */
 							glClearColor(0, 0, 0, 0);
 							glClear(GL_COLOR_BUFFER_BIT);
-							SDL_GL_SwapWindow(window);	
+							SDL_GL_SwapWindow(window);
 							glClear(GL_COLOR_BUFFER_BIT);
-							SDL_GL_SwapWindow(window);	
-							
+							SDL_GL_SwapWindow(window);
+
 							reload_textures++;
 						}
 					}
@@ -472,18 +539,30 @@ int main(int argc, char** argv) {
 					   entirely - see the note in initialization() above), so
 					   this now fills in our compat SDL_keysym by hand from the
 					   flat event fields instead of struct-copying event.key.keysym. */
-					SDL_keysym *ks;
+					if (!consumed_by_hotkey) {
+						SDL_keysym *ks;
 
-					ks = new SDL_keysym();
+						ks = new SDL_keysym();
 
-					ks->scancode = event.key.scancode;
-					ks->sym = event.key.key;
-					ks->unicode = 0;
-					ks->mod = event.key.mod;
+						ks->scancode = event.key.scancode;
+						ks->sym = event.key.key;
+						ks->unicode = 0;
+						ks->mod = event.key.mod;
 
-					k->keyevents.Add(ks);
+						k->keyevents.Add(ks);
+					}
 
 					break;
+				}
+
+					/* SDL3 delivers typed text (respecting keyboard layout,
+					   dead keys, IME, etc.) through a separate event instead
+					   of a unicode field on the key-down event (see the note
+					   in initialization()). state_menu.cpp/state_race_result.cpp
+					   only read ks->unicode for name-entry text boxes, so we
+					   just need to get *a* value in there; taking the first
+					   UTF-8 byte is enough for the plain ASCII initials this
+					   game expects. */
 
 				case SDL_EVENT_TEXT_INPUT: {
 					SDL_keysym *tks;
@@ -500,8 +579,7 @@ int main(int argc, char** argv) {
 					break;
 				}
 
-
-				/* SDL_EVENT_QUIT event (window close) */
+					/* SDL_EVENT_QUIT event (window close) */
 
 				case SDL_EVENT_QUIT:
 					quit = true;

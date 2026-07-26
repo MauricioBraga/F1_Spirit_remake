@@ -500,7 +500,11 @@ void F1SpiritApp::replaymanager_draw(void)
 			int y = 32 - replaymanager_first * 16;
 
 			glEnable( GL_SCISSOR_TEST );
-			glScissor(24, 48, 328, 400);
+			{
+				int sx, sy, sw, sh;
+				map_game_sub_viewport(24, 48, 328, 400, &sx, &sy, &sw, &sh);
+				glScissor(sx, sy, sw, sh);
+			}
 
 			l.Instance(replaymanager_replays);
 			l.Rewind();
@@ -728,9 +732,13 @@ void F1SpiritApp::replaymanager_draw(void)
 		x = 412 + (0 - 412) * f;
 		y = 292 + (0 - 292) * f;
 
-		glViewport(int(x), int(y), int(dx), int(dy));
+		{
+			int vx, vy, vw, vh;
+			map_game_sub_viewport((int)x, (int)y, (int)dx, (int)dy, &vx, &vy, &vw, &vh);
+			glViewport(vx, vy, vw, vh);
+		}
 		replaymanager_game->draw(true);
-		glViewport(0, 0, SCREEN_X, SCREEN_Y);
+		restore_game_viewport();
 	} 
 
 	if (replaymanager_timmer >= 0 && replaymanager_state != 1) {
