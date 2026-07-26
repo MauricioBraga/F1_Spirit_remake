@@ -1,0 +1,95 @@
+name: Build Linux
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  DEPS_PREFIX: /opt/f1spirit-deps
+  SDL_VERSION: release-3.2.16
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install build tools and system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake ninja-build git build-essential pkg-config \
+            libcurl4-openssl-dev libgl-dev libglu1-mesa-dev \
+            libasound2-dev libpulse-dev libudev-dev
+
+      # SDL3/SDL3_mixer/SDL3_image aren't packaged by Ubuntu yet, so build
+      # them from source into a dedicated prefix. Cached by SDL_VERSION so
+      # this only actually rebuilds when that pin changes.
+      - name: Cache SDL3 build
+        id: cache-sdl3
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.DEPS_PREFIX }}
+          key: sdl3-linux-${{ env.SDL_VERSION }}-v1
+
+      - name: Build SDL3 (core)
+        if: steps.cache-sdl3.outputs.cache-hit != 'true'
+        run: |
+          git clone --depth 1 --branch ${{ env.SDL_VERSION }} https://github.com/libsdl-org/SDL.git /tmp/SDL3
+          cmake -S /tmp/SDL3 -B /tmp/SDL3/build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=${{ env.DEPS_PREFIX }}
+          cmake --build /tmp/SDL3/build
+          sudo cmake --install /tmp/SDL3/build
+
+      - name: Build SDL3_image
+        if: steps.cache-sdl3.outputs.cache-hit != 'true'
+        run: |
+          git clone --depth 1 https://github.com/libsdl-org/SDL_image.git /tmp/SDL3_image
+          cmake -S /tmp/SDL3_image -B /tmp/SDL3_image/build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=${{ env.DEPS_PREFIX }} \
+            -DCMAKE_PREFIX_PATH=${{ env.DEPS_PREFIX }}
+          cmake --build /tmp/SDL3_image/build
+          sudo cmake --install /tmp/SDL3_image/build
+
+      - name: Build SDL3_mixer
+        if: steps.cache-sdl3.outputs.cache-hit != 'true'
+        run: |
+          git clone --depth 1 https://github.com/libsdl-org/SDL_mixer.git /tmp/SDL3_mixer
+          cmake -S /tmp/SDL3_mixer -B /tmp/SDL3_mixer/build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=${{ env.DEPS_PREFIX }} \
+            -DCMAKE_PREFIX_PATH=${{ env.DEPS_PREFIX }}
+          cmake --build /tmp/SDL3_mixer/build
+          sudo cmake --install /tmp/SDL3_mixer/build
+
+      - name: Configure
+        run: |
+          cmake -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH=${{ env.DEPS_PREFIX }}
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Package (bundles the custom-built SDL3 .so files)
+        run: bash ci/package-linux.sh "${{ env.DEPS_PREFIX }}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: F1SpiritRemake-linux
+          path: dist/F1SpiritRemake-linux.tar.gz
+          if-no-files-found: error
+
+      - name: Attach to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/F1SpiritRemake-linux.tar.gz
