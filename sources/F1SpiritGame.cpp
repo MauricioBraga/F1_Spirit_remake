@@ -3806,7 +3806,12 @@ void F1SpiritGame::draw(bool draw_scoreboard)
 
 	} // while
 
-	glDisable( GL_SCISSOR_TEST );
+	// glDisable( GL_SCISSOR_TEST );
+	{
+		int sx, sy, sw, sh;
+		map_game_sub_viewport(0, 0, 640, 480, &sx, &sy, &sw, &sh);
+		glScissor(sx, sy, sw, sh);
+	}
 
 	/* Draw the minimap: */
 	if (draw_scoreboard) {

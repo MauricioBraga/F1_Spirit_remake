@@ -740,6 +740,29 @@ void F1SpiritApp::draw()
 		g_game_viewport_h = vp_h;
 
 		glViewport(vp_x, vp_y, vp_w, vp_h);
+
+		// fix the bug of leaking screen colors to the vertical borders 
+		// (that are supposed to remain black all the time)
+		/* glClear() ignores glViewport (it always affects the whole
+		window/backbuffer) and is only constrained by glScissor(). A
+		lot of individual states set their own, sometimes non-black,
+		clear color (state_menu_draw.cpp uses white, state_title.cpp
+		fades through white/gray, state_hiscore.cpp/state_race_result.cpp
+		use dark gray, ...). Without this, each of those clears would
+		repaint the letterbox border area too - which should always
+		stay black - since none of them know or care about the
+		letterboxing. Clear the whole window to black first (scissor
+		disabled), then restrict every draw for the rest of this frame
+		(including whatever glClear() a state's own code runs) to the
+		letterboxed viewport, so only the logical 640x480 game area can
+		ever be repainted a different color. Undone again right before
+		SwapWindow, at the end of this function. */
+		glDisable(GL_SCISSOR_TEST);
+		glClearColor(0, 0, 0, 1);
+		glClear(GL_COLOR_BUFFER_BIT);
+
+		glEnable(GL_SCISSOR_TEST);
+		glScissor(vp_x, vp_y, vp_w, vp_h);
 	}
 
 	ratio = (float)SCREEN_X / float(SCREEN_Y);
@@ -844,6 +867,8 @@ void F1SpiritApp::draw()
 	}
 	
 	glDisable(GL_BLEND);
+
+	glDisable(GL_SCISSOR_TEST);
 
 #ifdef F1SPIRIT_DEBUG_MESSAGES
 	if (state_cycle == 0) {

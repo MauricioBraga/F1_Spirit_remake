@@ -531,7 +531,12 @@ void F1SpiritApp::replaymanager_draw(void)
 				y += 16;
 			} 
 
-			glDisable( GL_SCISSOR_TEST );
+			// glDisable( GL_SCISSOR_TEST );
+			{
+				int sx, sy, sw, sh;
+				map_game_sub_viewport(0, 0, 640, 480, &sx, &sy, &sw, &sh);
+				glScissor(sx, sy, sw, sh);
+			}
 
 		}
 

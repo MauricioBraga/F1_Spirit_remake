@@ -447,7 +447,7 @@ void F1SpiritApp::menu_draw(void)
 					glScissor(sx, sy, sw, sh);
 				}
 
-				glDisable( GL_SCISSOR_TEST );
+				// glDisable( GL_SCISSOR_TEST );
 
 				if (menu_showing_track_timmer2 < 200 + TRACKPREVIEW_CONSTANT) {
 					float f = float(menu_showing_track_timmer2 - 200) / TRACKPREVIEW_CONSTANT;
