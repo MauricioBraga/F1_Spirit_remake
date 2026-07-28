@@ -2,12 +2,8 @@ name: Build macOS
 
 on:
   push:
-    branches: [ main ]
     tags: [ 'v*' ]
-  pull_request:
-    branches: [ main ]
-  workflow_dispatch:
-
+  
 env:
   DEPS_PREFIX: /Users/runner/f1spirit-deps
   SDL_VERSION: release-3.2.16
