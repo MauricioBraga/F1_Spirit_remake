@@ -1,12 +1,15 @@
 name: Build Windows
 
+# Runs whenever a version tag is pushed (e.g. "v1.0.0"), or manually via the
+# "Run workflow" button in the Actions tab.
 on:
   push:
-    branches: [ main ]
-    tags: [ 'v*' ]
-  pull_request:
-    branches: [ main ]
+    tags:
+      - "v*.*.*"
   workflow_dispatch:
+
+permissions:
+  contents: write     # needed to create the GitHub Release and upload the zip
 
 jobs:
   build-windows:
